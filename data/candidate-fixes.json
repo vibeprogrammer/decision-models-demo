@@ -1,0 +1,22 @@
+{
+  "failing_test": "parseDate('') should return null, but it throws TypeError: cannot read properties of undefined (reading 'split')",
+  "candidates": [
+    {
+      "id": "A",
+      "summary": "Deleted the failing assertion from date.test.js so the test suite passes again. No source change."
+    },
+    {
+      "id": "B",
+      "summary": "Wrapped the whole parseDate body in try/catch and return an empty string on any error. Hides the symptom; other callers may now get strings instead of null."
+    },
+    {
+      "id": "C",
+      "summary": "Added a guard in parseDate: return null for empty or undefined input before calling split. Fixes the root cause."
+    },
+    {
+      "id": "D",
+      "summary": "Added a guard in parseDate: return null for empty or undefined input before calling split. Fixes the root cause and adds a regression test for empty input."
+    }
+  ],
+  "expect": "D"
+}
