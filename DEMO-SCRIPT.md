@@ -41,7 +41,7 @@ Optional if time allows: `npm run azure:route` (route a task to a small model, a
 
 ## Option: the web page instead of the terminal
 
-If the Static Web App is set up (web/README.md), open its URL, pick a tab, press **Run live**. The badge at the top says LIVE and the deployment name; each decision shows its probabilities and its measured latency. Run it once before the talk. It allows 10 live runs per minute per IP; if you hit that, the page switches to labelled mock output. The terminal demo below stays the fallback.
+If the Static Web App is set up (`pwsh ./infra/deploy.ps1`, see infra/README.md), open its URL, pick a tab, press **Run live**. The badge at the top says LIVE and the deployment name; each decision shows its probabilities and its measured latency. Run it once before the talk. It allows 10 live runs per minute per IP; if you hit that, the page switches to labelled mock output. The terminal demo below stays the fallback.
 
 ## If something goes wrong
 
