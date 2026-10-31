@@ -19,3 +19,5 @@ jobs:
       - run: npm test
       - run: npm run demo
       - run: npm run compare
+      - name: demo:azure without a key falls back to mock
+        run: npm run azure:gate

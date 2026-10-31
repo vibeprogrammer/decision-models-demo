@@ -1,0 +1,93 @@
+name: live-azure
+# Runs the demo against the real Microsoft-Decision-1 deployment. Manual only.
+# Needs: repository secret AZURE_DECISION_KEY, repository variable AZURE_DECISION_ENDPOINT.
+# Optional: variable AZURE_DECISION_DEPLOYMENT (default Microsoft-Decision-1);
+#           LLM baseline: variables LLM_BASE_URL, LLM_MODEL, LLM_AUTH + secret LLM_API_KEY.
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "What to run"
+        type: choice
+        default: all
+        options: [all, triage, gate, rank, route, compare]
+      deployment:
+        description: "Deployment name (empty = variable AZURE_DECISION_DEPLOYMENT, else Microsoft-Decision-1)"
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-azure
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DECISION_PROVIDER: azure
+      DEMO_STRICT: "1"
+      AZURE_DECISION_ENDPOINT: ${{ vars.AZURE_DECISION_ENDPOINT }}
+      AZURE_DECISION_KEY: ${{ secrets.AZURE_DECISION_KEY }}
+      AZURE_DECISION_DEPLOYMENT: ${{ inputs.deployment || vars.AZURE_DECISION_DEPLOYMENT }}
+      LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+      LLM_MODEL: ${{ vars.LLM_MODEL }}
+      LLM_AUTH: ${{ vars.LLM_AUTH }}
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      SCENARIO: ${{ inputs.scenario }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check configuration
+        shell: bash
+        run: |
+          missing=0
+          if [ -z "$AZURE_DECISION_KEY" ]; then
+            echo "::error title=Missing secret::add AZURE_DECISION_KEY secret (Settings > Secrets and variables > Actions > New repository secret)"
+            echo "**Not run: add AZURE_DECISION_KEY secret** (Settings > Secrets and variables > Actions > New repository secret)." >> "$GITHUB_STEP_SUMMARY"
+            missing=1
+          fi
+          if [ -z "$AZURE_DECISION_ENDPOINT" ]; then
+            echo "::error title=Missing variable::add AZURE_DECISION_ENDPOINT variable (Settings > Secrets and variables > Actions > Variables)"
+            echo "**Not run: add AZURE_DECISION_ENDPOINT variable** (Settings > Secrets and variables > Actions > Variables)." >> "$GITHUB_STEP_SUMMARY"
+            missing=1
+          fi
+          exit $missing
+
+      - name: Preflight (one request)
+        shell: bash
+        run: |
+          set -o pipefail
+          node bin/check.js 2>&1 | tee preflight.txt
+
+      - name: Run ${{ inputs.scenario }}
+        shell: bash
+        run: |
+          set -o pipefail
+          case "$SCENARIO" in
+            compare) node bin/compare.js --provider azure --strict ;;
+            all)     node bin/demo.js --provider azure --strict ;;
+            triage|gate|rank|route) node bin/demo.js "$SCENARIO" --provider azure --strict ;;
+            *) echo "Unknown scenario $SCENARIO"; exit 1 ;;
+          esac 2>&1 | tee output.txt
+
+      - name: Job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Microsoft-Decision-1 live run: \`$SCENARIO\`"
+            echo
+            echo "Runner: GitHub-hosted ubuntu-latest. Latency is measured from the runner, not from your laptop."
+            for f in preflight.txt output.txt; do
+              if [ -f "$f" ]; then
+                echo; echo "### $f"; echo '```text'; cat "$f"; echo '```'
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

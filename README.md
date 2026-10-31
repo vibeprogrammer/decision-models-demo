@@ -32,7 +32,7 @@ npm run compare
 npm test
 ```
 
-There is nothing to install: `npm run` just starts Node. Run one scenario at a time with `npm run triage`, `npm run gate`, `npm run rank` or `npm run route`.
+There is nothing to install: `npm run` just starts Node. For the real model, see [Live demo with Microsoft-Decision-1](#live-demo-with-microsoft-decision-1-azure). Run one scenario at a time with `npm run triage`, `npm run gate`, `npm run rank` or `npm run route`.
 
 ## The four scenarios
 
@@ -51,7 +51,7 @@ There is nothing to install: `npm run` just starts Node. Run one scenario at a t
 import { choice, score, yesno } from "./src/questions.js";
 import { decisionProvider } from "./src/providers/index.js";
 
-const model = decisionProvider(); // mock | typesafe | foundry | openai, from DECISION_PROVIDER
+const model = decisionProvider(); // mock | azure | typesafe | openai, from DECISION_PROVIDER
 
 const { answers } = await model.decide(issueText, {
   kind: choice("What kind of issue is this?", { bug: "...", feature: "...", security: "..." }),
@@ -66,22 +66,100 @@ else label(answers.kind.choice);
 
 The model decides. Your code keeps control: thresholds, fallbacks and the final action stay in code you can test.
 
-## Use a real decision model
+## Live demo with Microsoft-Decision-1 (Azure)
 
-Copy `.env.example` to `.env` and fill in one provider. You can also set the same variables in your shell.
+Three commands once the key is set:
 
-- Windows PowerShell: `Copy-Item .env.example .env`
-- Windows cmd: `copy .env.example .env`
-- macOS / Linux: `cp .env.example .env`
+```
+npm run azure:check     # one small request: is the endpoint + key + deployment OK? prints measured latency
+npm run demo:azure      # the four scenarios against the real model, latency measured on your machine
+npm run compare:azure   # decision model (live) vs the LLM baseline
+```
+
+One scenario at a time: `npm run azure:triage`, `azure:gate`, `azure:rank`, `azure:route`.
+
+Without a key, `demo:azure` and `compare:azure` print a NOTE and fall back to mock mode, so nothing breaks on stage. Add `--strict` to fail instead.
+
+### 1. Find the key and deployment name
+
+In the [Foundry portal](https://ai.azure.com), open your Microsoft-Decision-1 deployment. Its details page shows the endpoint, the **deployment name** and the **API key** (Microsoft's docs: "On the deployment details page, copy the resource endpoint, deployment name, and API key"). The same keys are in the Azure portal: your Foundry resource, then **Resource Management > Keys and Endpoint** (KEY 1 or KEY 2). Or with the Azure CLI:
+
+```
+az cognitiveservices account keys list --name <resource-name> --resource-group <resource-group>
+```
+
+The deployment name defaults to `Microsoft-Decision-1` here. If you named your deployment differently, set `AZURE_DECISION_DEPLOYMENT`. A 422 error means this name is wrong.
+
+### 2. Set it locally (never commit it)
+
+| Variable | Value |
+| --- | --- |
+| `AZURE_DECISION_ENDPOINT` | `https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone` (the resource URL without the path also works) |
+| `AZURE_DECISION_KEY` | your key (sent as the `api-key` header) |
+| `AZURE_DECISION_DEPLOYMENT` | optional, default `Microsoft-Decision-1` |
+| `AZURE_DECISION_TOKEN` | optional instead of the key: a Microsoft Entra ID token, sent as `Authorization: Bearer` |
+
+Option A, a `.env` file (git-ignored, read automatically):
+
+- PowerShell: `Copy-Item .env.example .env`, then `notepad .env`
+- cmd: `copy .env.example .env`, then `notepad .env`
+- macOS / Linux: `cp .env.example .env`, then edit it
+
+Option B, the current terminal only:
+
+**Windows PowerShell**
+
+```powershell
+$env:AZURE_DECISION_ENDPOINT = "https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone"
+$env:AZURE_DECISION_KEY = "<paste-key>"
+npm run azure:check
+npm run demo:azure
+```
+
+**Windows cmd** (no quotes around values)
+
+```bat
+set AZURE_DECISION_ENDPOINT=https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone
+set AZURE_DECISION_KEY=<paste-key>
+npm run azure:check
+npm run demo:azure
+```
+
+**macOS / Linux**
+
+```bash
+export AZURE_DECISION_ENDPOINT="https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone"
+read -rs AZURE_DECISION_KEY && export AZURE_DECISION_KEY   # paste, Enter (not shown, not in history)
+npm run azure:check
+npm run demo:azure
+```
+
+The demo never prints the key. Error messages carry a hint (401 = key, 404 = endpoint, 422 = deployment name, 429 = rate limit, retried twice).
+
+Microsoft Entra ID instead of a key: `az login`, then set `AZURE_DECISION_TOKEN` to the output of `az account get-access-token --resource https://cognitiveservices.azure.com --query accessToken --output tsv`.
+
+### 3. Or run it in GitHub Actions
+
+The **live-azure** workflow (`.github/workflows/live-azure.yml`) runs the demo against Azure from GitHub and puts the output in the run's summary.
+
+1. Repo **Settings > Secrets and variables > Actions > Secrets > New repository secret**, name `AZURE_DECISION_KEY`, value = your key. (CLI: `gh secret set AZURE_DECISION_KEY --repo vibeprogrammer/decision-models-demo` prompts for it.)
+2. The repo variable `AZURE_DECISION_ENDPOINT` is already set (Variables tab). Add `AZURE_DECISION_DEPLOYMENT` there if your deployment isn't called `Microsoft-Decision-1`.
+3. **Actions > live-azure > Run workflow**, pick a scenario (`all`, `triage`, `gate`, `rank`, `route`, `compare`).
+
+It runs only when you start it, fails with "add AZURE_DECISION_KEY secret" if the secret is missing, and GitHub masks the key in logs. Latency from a GitHub runner (US datacenter) is not the latency from your laptop on stage; measure on the machine you present from.
+
+## Other providers
+
+Set `DECISION_PROVIDER` in `.env` or your shell (or pass `--provider <name>` to `demo` / `compare`) and fill in that provider's variables:
 
 | `DECISION_PROVIDER` | Model | Variables | Endpoint used |
 | --- | --- | --- | --- |
 | `mock` (default) | offline keyword stand-in | none | none |
 | `typesafe` | TypeSafe **Jev** | `TYPESAFE_API_KEY`, optional `TYPESAFE_MODEL` (default `jev-latest`) | `POST https://api.typesafe.ai/v1/systemone` |
-| `foundry` | **Microsoft-Decision-1** in Microsoft Foundry | `AZURE_ENDPOINT`, `AZURE_API_KEY`, `AZURE_DEPLOYMENT` (your deployment name) | `POST {AZURE_ENDPOINT}/providers/microsoft/v1/systemone` |
+| `azure` (or `foundry`) | **Microsoft-Decision-1** in Microsoft Foundry | `AZURE_DECISION_ENDPOINT`, `AZURE_DECISION_KEY`, optional `AZURE_DECISION_DEPLOYMENT` (default `Microsoft-Decision-1`). The v1 names `AZURE_ENDPOINT` / `AZURE_API_KEY` / `AZURE_DEPLOYMENT` still work | `POST {endpoint}/providers/microsoft/v1/systemone` |
 | `openai` | OpenAI Decisions API | `OPENAI_API_KEY`, optional `OPENAI_DECISIONS_MODEL` (default `gpt-6-luna`) | `POST https://api.openai.com/v1/decisions` |
 
-The LLM baseline works with any OpenAI-compatible `/chat/completions` endpoint (OpenAI, OpenRouter, Azure OpenAI, Ollama, LM Studio). Set `LLM_BASE_URL` (for example `https://openrouter.ai/api/v1`), `LLM_API_KEY` and `LLM_MODEL`. Leave `LLM_BASE_URL` empty for the simulated baseline.
+The LLM baseline works with any OpenAI-compatible `/chat/completions` endpoint (OpenAI, OpenRouter, Azure OpenAI, Ollama, LM Studio). Set `LLM_BASE_URL` (for example `https://openrouter.ai/api/v1`), `LLM_API_KEY` and `LLM_MODEL`. For a chat model deployed on the same Azure resource, use `LLM_BASE_URL=https://<resource>.services.ai.azure.com/openai/v1`, `LLM_MODEL=<chat deployment name>` and `LLM_AUTH=api-key` (sends the key as an `api-key` header). Leave `LLM_BASE_URL` empty for the simulated baseline.
 
 Then run `npm run demo` or `npm run compare` again.
 
@@ -94,13 +172,18 @@ TypeSafe's `/v1/systemone` request (`state` plus named `questions` of type `choi
 - **Mock mode is not a model.** It scores options by keyword overlap so the pipeline runs offline. The mock data is written so the keywords work. Real accuracy comes only from a real provider on your own labelled examples.
 - **Mock latency is simulated** with a sleep: 130 ms for the decision model and 1400 ms for the LLM. These are the median time-per-task figures Artificial Analysis published on 2026-10-13 for Jev 1.13 and Claude Haiku 5.5 (Low). Change them with `MOCK_DECISION_MS` and `MOCK_LLM_MS`. With real providers configured, `compare` measures real wall-clock time from your machine.
 - **Vendor numbers are vendor numbers.** Microsoft's and TypeSafe's speed and cost claims come from their own benchmarks. Artificial Analysis found that decision models trail LLMs on knowledge questions and are overconfident there, while doing well on classification and tool-calling decisions. Validate thresholds on your data before you automate a gate.
-- API shapes are taken from the vendors' docs as of 2026-10-30. The unit tests check the request mapping against those documented examples. They don't call live endpoints.
+- **Live latency is measured, mock latency is not.** Every run prints which one you are looking at (`LIVE` or `MOCK MODE`), and `demo:azure` ends with median / p95 / first-call latency measured with `performance.now()` around each request. The first call includes TLS and connection setup.
+- API shapes are taken from the vendors' docs as of 2026-10-31. The unit tests check the request mapping against those documented examples and use a fake server; they don't call live endpoints. Run `npm run azure:check` for the real thing.
 
 ## Project layout
 
 ```
 bin/demo.js                     run the scenarios
 bin/compare.js                  decision model vs generative LLM
+bin/check.js                    azure:check preflight (one live request)
+src/timing.js                   measured latency + LIVE / MOCK banner
+DEMO-SCRIPT.md                  what to type and say on stage
+.github/workflows/live-azure.yml  run the live demo from GitHub Actions
 src/questions.js                choice / score / yesno + confidence
 src/scenarios.js                the four decisions and the policies that act on them
 src/providers/systemone.js      TypeSafe Jev + Microsoft Foundry (same wire format)
