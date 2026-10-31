@@ -37,7 +37,7 @@ for (const p of contenders) {
         const r = await p.decide(it.text, s.questions(it));
         times.push(performance.now() - t0);
         tokIn += r.usage?.input ?? 0; tokOut += r.usage?.output ?? 0;
-        if (r.parseError) { parseErrors++; continue; }
+        if (r.parseError) { parseErrors++; console.log(`parse error: ${p.name} / ${s.key} / ${it.id}: ${JSON.stringify(String(r.rawText ?? "").slice(0, 200))}${r.finishReason && r.finishReason !== "stop" ? ` (finish_reason ${r.finishReason})` : ""}`); continue; }
         const first = Object.values(r.answers)[0];
         if (first && (first.probabilities && Object.keys(first.probabilities).length)) withProb++;
         if (s.check(it, r.answers, s.policy(r.answers))) ok++;
