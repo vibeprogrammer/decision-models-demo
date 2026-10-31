@@ -2,7 +2,7 @@ name: live-azure
 # Runs the demo against the real Microsoft-Decision-1 deployment. Manual only.
 # Needs: repository secret AZURE_DECISION_KEY, repository variable AZURE_DECISION_ENDPOINT.
 # Optional: variable AZURE_DECISION_DEPLOYMENT (default Microsoft-Decision-1);
-#           LLM baseline: variables LLM_BASE_URL, LLM_MODEL, LLM_AUTH + secret LLM_API_KEY.
+#           variable AZURE_LLM_DEPLOYMENT for `compare` (default dep-gpt-6-luna, same resource and key).
 on:
   workflow_dispatch:
     inputs:
@@ -33,10 +33,7 @@ jobs:
       AZURE_DECISION_ENDPOINT: ${{ vars.AZURE_DECISION_ENDPOINT }}
       AZURE_DECISION_KEY: ${{ secrets.AZURE_DECISION_KEY }}
       AZURE_DECISION_DEPLOYMENT: ${{ inputs.deployment || vars.AZURE_DECISION_DEPLOYMENT }}
-      LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
-      LLM_MODEL: ${{ vars.LLM_MODEL }}
-      LLM_AUTH: ${{ vars.LLM_AUTH }}
-      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      AZURE_LLM_DEPLOYMENT: ${{ vars.AZURE_LLM_DEPLOYMENT || 'dep-gpt-6-luna' }}
       SCENARIO: ${{ inputs.scenario }}
     steps:
       - uses: actions/checkout@v4
@@ -82,7 +79,7 @@ jobs:
         shell: bash
         run: |
           {
-            echo "## Microsoft-Decision-1 live run: \`$SCENARIO\`"
+            echo "## Live run: \`$SCENARIO\`"
             echo
             echo "Runner: GitHub-hosted ubuntu-latest. Latency is measured from the runner, not from your laptop."
             for f in preflight.txt output.txt; do

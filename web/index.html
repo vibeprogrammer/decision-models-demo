@@ -3,40 +3,113 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Decision models: live demo</title>
-<meta name="description" content="Microsoft-Decision-1 making four everyday coding-agent decisions, live, with measured latency.">
+<title>Decision model vs regular LLM: live demo</title>
+<meta name="description" content="A decision model and a general-purpose LLM answer the same everyday coding-agent decisions, live. Measured latency, accuracy and tokens, side by side.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0b1f3a">
+<meta property="og:title" content="Decision model vs regular LLM: live demo">
+<meta property="og:description" content="Same questions, two kinds of model, both called live. Measured latency, accuracy and tokens, side by side.">
+<meta property="og:type" content="website">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <div class="wrap">
-    <p class="eyebrow">AI Coding Summit Berlin · Maxim Salnikov</p>
-    <h1>Decision models, live</h1>
-    <p class="lede">A decision model returns a probability for every option instead of text. Pick a decision a coding agent makes every day and run it against the real model.</p>
-    <p id="badge" class="badge">Checking the model…</p>
+<a class="skip" href="#main">Skip to the demo</a>
+<header class="top">
+  <div class="wrap bar">
+    <span class="brand"><span class="mark" aria-hidden="true"></span>Decision models demo</span>
+    <nav aria-label="Links">
+      <a href="https://github.com/webmaxru/decision-models-demo" rel="noopener"><svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>Source on GitHub</span></a>
+      <a href="https://www.linkedin.com/in/webmax/" rel="noopener"><svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16"><path fill="currentColor" d="M0 1.15C0 .52.52 0 1.17 0h13.66C15.48 0 16 .52 16 1.15v13.7c0 .63-.52 1.15-1.17 1.15H1.17C.52 16 0 15.48 0 14.85V1.15Zm4.94 12.24V6.17H2.54v7.22h2.4Zm-1.2-8.21c.84 0 1.36-.55 1.36-1.25-.02-.71-.52-1.25-1.34-1.25-.82 0-1.36.54-1.36 1.25 0 .7.52 1.25 1.33 1.25h.01Zm4.91 8.21V9.36c0-.22.02-.43.08-.59.17-.43.57-.88 1.23-.88.87 0 1.22.66 1.22 1.63v3.87h2.4V9.25c0-2.22-1.18-3.25-2.76-3.25-1.27 0-1.84.7-2.16 1.19v.03h-.02l.02-.03V6.17h-2.4c.03.68 0 7.22 0 7.22h2.4Z"/></svg><span>Maxim Salnikov</span></a>
+    </nav>
+  </div>
+  <div class="wrap hero">
+    <h1>Decision model <span class="vs">vs</span> regular LLM</h1>
+    <p class="lede">Same question, two kinds of model, both called live. The <strong class="d">decision model</strong> returns a probability for every option. The <strong class="l">regular LLM</strong> writes JSON that your code has to parse. Pick a use case and race them.</p>
   </div>
 </header>
 
-<main class="wrap">
-  <nav id="tabs" aria-label="Scenarios">
-    <button data-s="triage" aria-pressed="true">Triage issues</button>
-    <button data-s="gate" aria-pressed="false">Gate a command</button>
-    <button data-s="rank" aria-pressed="false">Rank fixes</button>
-    <button data-s="route" aria-pressed="false">Route a task</button>
-  </nav>
+<main id="main" class="wrap">
+  <div class="tabs" role="tablist" aria-label="Use cases" id="tabs"></div>
 
-  <section class="intro">
-    <p id="desc"></p>
-    <button id="run" class="run">Run live</button>
+  <section class="panel" id="panel" role="tabpanel" aria-labelledby="">
+    <div class="intro">
+      <div>
+        <h2 id="title"></h2>
+        <p id="desc" class="desc"></p>
+      </div>
+      <div class="runbox">
+        <button id="run" class="run" type="button">Run live</button>
+        <p id="status" class="status" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <div class="board" aria-label="Scoreboard">
+      <div class="side d" id="side-decision">
+        <p class="who"><span class="dot"></span>Decision model <span class="model">Microsoft-Decision-1</span></p>
+        <p class="clock"><span id="clock-decision">0.00</span><small> s</small></p>
+        <div class="race" aria-hidden="true"><span class="fill" id="race-decision"></span></div>
+        <dl>
+          <div><dt>Correct</dt><dd id="acc-decision">–</dd></div>
+          <div><dt>Median per call</dt><dd id="med-decision">–</dd></div>
+          <div><dt>Tokens in / out</dt><dd id="tok-decision">–</dd></div>
+          <div><dt>Probabilities</dt><dd>for every option</dd></div>
+        </dl>
+      </div>
+      <div class="side l" id="side-llm">
+        <p class="who"><span class="dot"></span>Regular LLM <span class="model">GPT-6 Luna</span></p>
+        <p class="clock"><span id="clock-llm">0.00</span><small> s</small></p>
+        <div class="race" aria-hidden="true"><span class="fill" id="race-llm"></span></div>
+        <dl>
+          <div><dt>Correct</dt><dd id="acc-llm">–</dd></div>
+          <div><dt>Median per call</dt><dd id="med-llm">–</dd></div>
+          <div><dt>Tokens in / out</dt><dd id="tok-llm">–</dd></div>
+          <div><dt>Probabilities</dt><dd>none, a label only</dd></div>
+        </dl>
+      </div>
+      <p class="verdict" id="verdict" aria-live="polite"></p>
+    </div>
+
+    <p class="source" id="source"></p>
+
+    <div class="rows" id="rows" role="table" aria-label="Answers per item"></div>
+
+    <details class="json" id="json">
+      <summary>Example JSON: request and response for one item</summary>
+      <div class="jsonbody">
+        <p class="note" id="json-note"></p>
+        <div class="io">
+          <div><h3><span class="dot d"></span>Decision model · request</h3><pre id="json-d-req"></pre></div>
+          <div><h3><span class="dot d"></span>Decision model · response</h3><pre id="json-d-res"></pre></div>
+          <div><h3><span class="dot l"></span>Regular LLM · request</h3><pre id="json-l-req"></pre></div>
+          <div><h3><span class="dot l"></span>Regular LLM · response</h3><pre id="json-l-res"></pre></div>
+        </div>
+      </div>
+    </details>
   </section>
 
-  <p id="notice" class="notice" hidden></p>
-  <div id="summary" class="summary" hidden></div>
-  <ol id="results" class="results"></ol>
+  <section class="summary" aria-labelledby="sum-h">
+    <h2 id="sum-h">All four use cases</h2>
+    <p class="desc">Median model latency per call, measured on the server, and how many answers were right. <span id="sum-src"></span></p>
+    <div id="chart" class="chart"></div>
+    <p class="legend"><span><span class="dot d"></span>Decision model</span><span><span class="dot l"></span>Regular LLM</span></p>
+  </section>
+
+  <section class="how" aria-labelledby="how-h">
+    <h2 id="how-h">How it works</h2>
+    <ol>
+      <li>Your code asks typed questions: pick one option, place it on a scale, yes or no.</li>
+      <li>The decision model answers with a probability for every option. The LLM gets the same questions in a prompt and writes JSON.</li>
+      <li>Your code decides what happens: thresholds, policies, escalation when confidence is low. The model never runs free.</li>
+    </ol>
+    <p class="fine">Both models run on Microsoft Foundry. Latency is the model round trip measured on the server; the big clocks are wall time in your browser. The LLM gets a clear JSON answer format, runs with reasoning effort none (its fastest setting) and at most 300 output tokens per call. Limits: <span id="limits">10 live runs per minute per visitor, 500 model calls per day</span>.</p>
+  </section>
 </main>
 
-<footer class="wrap">
-  <p>The model decides; the code acts. Thresholds and policies live in the <a href="https://github.com/webmaxru/decision-models-demo">demo repo</a>. Fixed scenarios only, rate-limited. Latency is measured server-side, per request, from the API to the model.</p>
+<footer class="foot">
+  <div class="wrap">
+    <p>Built by <a href="https://www.linkedin.com/in/webmax/" rel="noopener">Maxim Salnikov</a>. Open source: <a href="https://github.com/webmaxru/decision-models-demo" rel="noopener">github.com/webmaxru/decision-models-demo</a></p>
+  </div>
 </footer>
 <script src="app.js" type="module"></script>
 </body>

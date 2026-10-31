@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,7 +13,9 @@ const currentRun = { databaseId: 3, createdAt: "2026-10-31T17:19:16-05:00", even
 
 function runDeployment(shell, { keyError = "", workflowRuns, noWait = false } = {}) {
   const workflow = workflowRuns !== undefined;
-  const dir = mkdtempSync(join(tmpdir(), "decision-key-preflight-"));
+  // realpath: GitHub's Windows runners use a short 8.3 TEMP path (RUNNER~1) while
+  // PowerShell reports the long one, so the mocked-CLI check would never match.
+  const dir = realpathSync.native(mkdtempSync(join(tmpdir(), "decision-key-preflight-")));
   try {
     // Match az.cmd's parenthesized launcher so unquoted length(key1) fails as on real Windows.
     writeFileSync(join(dir, "az.cmd"), `@echo off\r\nif exist "%~dp0mock-az.cjs" (\r\n  "${process.execPath}" "%~dp0mock-az.cjs" %*\r\n) else (\r\n  exit /b 1\r\n)\r\n`);

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Preflight for the live demo: is Microsoft-Decision-1 reachable with this key?
 // Usage: npm run azure:check     Prints the config (never the key), sends ONE small request,
-// and prints status, measured latency and the answer. Exit code 0 = ready for stage.
+// and prints status, measured latency and the answer. Exit code 0 = ready to demo.
 import { loadEnv } from "../src/env.js";
 import { foundry, foundryConfig, listFoundryDeployments } from "../src/providers/systemone.js";
 import { choice } from "../src/questions.js";

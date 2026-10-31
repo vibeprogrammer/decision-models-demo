@@ -1,7 +1,7 @@
 {
   "name": "decision-models-demo",
-  "version": "1.1.0",
-  "description": "Decision models vs a generative LLM on everyday coding-agent decisions. Vendor-agnostic, zero dependencies, runs with no API keys in mock mode.",
+  "version": "1.2.0",
+  "description": "Decision models vs a regular LLM on everyday coding-agent decisions, both live. Vendor-agnostic, zero dependencies; the decision pipeline also runs offline in mock mode.",
   "type": "module",
   "license": "MIT",
   "engines": {

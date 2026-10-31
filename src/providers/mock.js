@@ -4,8 +4,9 @@
 // That is enough to show the shape of the API (typed answers, a probability for every
 // option, confidence you can gate on). Real decisions come from a real provider.
 //
-// Latency is simulated with a sleep. Defaults are the per-task medians Artificial Analysis
-// published on 2026-10-13 (Jev 1.13: 0.13 s; Claude Haiku 5.5 (Low): 1.4 s), see README.
+// Latency is a sleep (MOCK_DECISION_MS, default 130 ms: the per-task median Artificial
+// Analysis published on 2026-10-13 for Jev 1.13). Only `npm run demo` uses this offline
+// stand-in; the comparison with an LLM is always live.
 
 import { choiceConfidence, argmax } from "../questions.js";
 
