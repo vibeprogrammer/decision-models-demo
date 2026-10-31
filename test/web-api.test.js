@@ -164,3 +164,16 @@ test("LLM call drops a parameter the model refuses and retries", async () => {
   assert.equal(r.answers.handler.choice, "small");
   assert.equal(seen.at(-1).reasoning_effort, "minimal"); assert.ok(!("temperature" in seen.at(-1)));
 });
+
+test("prices: one dated, sourced config; cost per call from real token counts", async () => {
+  const { PRICES, callCost } = await import("../web/prices.js");
+  assert.match(PRICES.asOf, /^\d{4}-\d{2}-\d{2}$/);
+  assert.ok(PRICES.sources.length >= 1 && PRICES.sources.every((s) => s.url.startsWith("https://")));
+  for (const lane of ["decision", "llm"]) assert.ok(PRICES.models[lane].perMillion.input > 0);
+  // Decision-1 bills input only; GPT-6 Luna bills input + output, cached input at the cached rate
+  assert.equal(callCost("decision", { input: 1_000_000, output: 500 }), PRICES.models.decision.perMillion.input);
+  const l = PRICES.models.llm.perMillion;
+  assert.ok(Math.abs(callCost("llm", { input: 1_000_000, output: 1_000_000 }) - (l.input + l.output)) < 1e-12);
+  assert.ok(Math.abs(callCost("llm", { input: 1_000_000, output: 0, cached: 1_000_000 }) - l.cachedInput) < 1e-12);
+  assert.equal(callCost("llm", { input: null, output: 3 }), null);
+});

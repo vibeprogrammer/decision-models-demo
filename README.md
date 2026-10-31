@@ -170,6 +170,14 @@ The four use cases as a race: press **Run live** and both models answer every it
 - **Only the fixed scenarios** can run: no free text reaches either model.
 - **Limits** (app settings): `DEMO_RATE_PER_MIN` live runs per minute per visitor (default 10) and `DEMO_DAILY_CALL_CAP` model calls per day (default 500), counted across **both** models. A run of the triage use case is 16 calls (8 items × 2 models). The LLM's output is capped at 300 tokens per call.
 - **No simulation:** before you run anything, and when the limits are reached, the page shows `web/recorded.json`, a real run recorded from the live site with `node scripts/record.mjs <site-url>`, labelled with its date.
+- **Cost comparison:** the page prices every call from the tokens it really used, at the published pay-as-you-go prices of the Global (Global Standard) deployment type, and shows cost per call, per run, per 1,000 and per 1M decisions and the ratio (scoreboard, verdict, "What it costs" chart and table). All prices live in one file, `web/prices.js`, with their date and sources. Prices as of 1 Nov 2026, USD per 1M tokens:
+
+  | Model (Global) | Input | Cached input | Output | EUR (input / output) |
+  |---|---|---|---|---|
+  | Microsoft-Decision-1 | $0.042 | n/a | not billed | €0.037 / not billed |
+  | GPT-6 Luna, short context | $0.10 | $0.01 | $0.50 | €0.088 / €0.44 |
+
+  Sources: [Azure Retail Prices API](https://prices.azure.com/api/retail/prices) (`productName eq 'Microsoft Decision Models'`; `productName eq 'Azure OpenAI GPT6'`, meters `6-luna ShortCo … Std Gl`), [Foundry Models pricing](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/), [Azure OpenAI pricing](https://azure.microsoft.com/en-us/pricing/details/azure-openai/). Both prices are the same in every region listed. From the recorded run: Decision-1 costs $4.48–$10.15 per 1M decisions, GPT-6 Luna $25.10–$45.66, so the decision model is 4.5–5.8× cheaper. No taxes, discounts or free credits are included; to update, edit `web/prices.js` (the test checks it has a date and sources).
 - Locally: `npm run web`, then open http://localhost:4280 (uses your `AZURE_*` variables).
 - **Deploys on every push to `main`** that touches `web/`, `api/`, `src/` or `data/` (`.github/workflows/azure-static-web-apps.yml`: build, tests, deploy, then a smoke test of `/api/health`). It needs the `AZURE_STATIC_WEB_APPS_API_TOKEN` secret, which `infra/deploy.ps1` sets.
 
@@ -224,7 +232,7 @@ DEMO-SCRIPT.md                  a short script for presenting the demo
 .github/workflows/azure-static-web-apps.yml  deploy the web demo
 .github/workflows/infra.yml     validate infra/ (Bicep build, PowerShell parse)
 infra/                          one-command Azure deploy: deploy.ps1, teardown.ps1, main.bicep
-web/                            web demo page (static, no build)
+web/                            web demo page (static, no build); web/prices.js = model prices
 api/                            managed Azure Functions API for the web demo
 bin/serve-web.js                npm run web: the web demo locally
 scripts/build-api.mjs           npm run build:api: refresh api/lib and web/scenarios.json

@@ -152,7 +152,7 @@ export function llmBaseline(env = process.env, fetchImpl = globalThis.fetch, { t
         return {
           model: json.model, ...parsed, rawText: content, retries: attempt,
           finishReason: json.choices?.[0]?.finish_reason,
-          usage: { input: json.usage?.prompt_tokens ?? null, output: json.usage?.completion_tokens ?? null, reasoning: json.usage?.completion_tokens_details?.reasoning_tokens ?? null },
+          usage: { input: json.usage?.prompt_tokens ?? null, output: json.usage?.completion_tokens ?? null, reasoning: json.usage?.completion_tokens_details?.reasoning_tokens ?? null, cached: json.usage?.prompt_tokens_details?.cached_tokens ?? 0 },
           io: { request, response: json },
         };
       }
