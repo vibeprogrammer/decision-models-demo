@@ -10,6 +10,7 @@ About 90 seconds, slide 8 ("Demo: four decisions inside a coding agent"). Font s
    cd decision-models-demo
    git pull
    $env:AZURE_DECISION_ENDPOINT = "https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone"
+   $env:AZURE_DECISION_DEPLOYMENT = "dep-decision-1"
    $env:AZURE_DECISION_KEY = "<paste-key>"
    ```
 
@@ -22,6 +23,7 @@ About 90 seconds, slide 8 ("Demo: four decisions inside a coding agent"). Font s
    401: key wrong. 404 `DeploymentNotFound` or 422: deployment name wrong, set `$env:AZURE_DECISION_DEPLOYMENT` (the check lists the names it can see). Other 404: endpoint wrong.
 
 3. Run the full demo once (`npm run demo:azure`) and keep that terminal output, or a screenshot of it, as your fallback. Note the median latency you see on the venue Wi-Fi.
+   For reference, the GitHub Actions run on 2026-10-31 (US runner): 21/21 correct, median 218 to 287 ms per request, first call about 1.1 s.
 4. Clear the screen: `cls` (cmd/PowerShell) or `clear`.
 
 ## On stage
