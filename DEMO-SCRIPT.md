@@ -4,7 +4,7 @@ About two minutes. Two ways to show it: the web page (easiest) or the terminal.
 
 ## The web page
 
-Open https://delightful-island-0738f7203.3.azurestaticapps.net. Before you press anything it shows a recorded live run, so the page is never empty.
+Open https://decision.isainative.dev. Before you press anything it shows a recorded live run, so the page is never empty.
 
 | Do | What appears | Say |
 | --- | --- | --- |

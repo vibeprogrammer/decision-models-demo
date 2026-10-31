@@ -1,6 +1,6 @@
 # Decision models demo
 
-Small, runnable demo of decision models next to a regular LLM, on four everyday coding-agent decisions. Live web demo: https://delightful-island-0738f7203.3.azurestaticapps.net
+Small, runnable demo of decision models next to a regular LLM, on four everyday coding-agent decisions. Live web demo: https://decision.isainative.dev
 
 A *decision model* doesn't write text. You send it **state** (text or JSON) and **typed questions** (pick one option, place on a scale, yes/no), and it returns a **probability for every option** in one pass. TypeSafe's Jev and Microsoft-Decision-1 are two examples. This repo uses them in four everyday coding-agent decisions and compares them, live, with asking a regular LLM (GPT-6 Luna) for JSON.
 
@@ -163,7 +163,7 @@ It runs only when you start it, fails with "add AZURE_DECISION_KEY secret" if th
 
 ## Web demo (Azure Static Web Apps, Free plan)
 
-Live: https://delightful-island-0738f7203.3.azurestaticapps.net
+Live: https://decision.isainative.dev (also at the Static Web App's default hostname, https://delightful-island-0738f7203.3.azurestaticapps.net)
 
 The four use cases as a race: press **Run live** and both models answer every item at the same time, item by item, with live clocks, per-item latency bars, correctness badges, the decision model's probabilities, tokens in/out and a summary across all four use cases. Each use case has an expandable panel with the real request and response JSON of both models. The page is static (`web/`), and the key stays in a managed Azure Functions API (`api/`).
 

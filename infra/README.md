@@ -7,7 +7,7 @@
 | `deploy.ps1` | The one command. Windows PowerShell 5.1 and PowerShell 7+ (Windows, macOS, Linux). Safe to re-run. |
 | `deploy.sh` | The same for macOS/Linux bash, if you prefer it. |
 | `teardown.ps1` | Removes the Static Web App and the budget. Never the resource group or the Foundry account. |
-| `main.bicep` | Static Web App (Free) + its app settings + optional budget (module). |
+| `main.bicep` | Static Web App (Free) + its app settings + custom domain + optional budget (module). |
 | `budget.bicep` | Monthly Consumption budget on the resource group with email alerts. |
 
 ## What it creates
@@ -15,11 +15,19 @@
 In the existing resource group **rg-middagskos** (created only if it doesn't exist):
 
 - **Static Web App `swa-decision-demo`, Free plan, West Europe.** Hosts the page and runs the API as managed Azure Functions, so there is no separate Function App and no hosting bill. Static Web Apps is only offered in westeurope, eastus2, centralus, westus2 and eastasia, so Norway East isn't an option; West Europe is the closest.
-- **App settings on it:** `AZURE_DECISION_ENDPOINT` (`https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone`), `AZURE_DECISION_DEPLOYMENT` (`dep-decision-1`), `AZURE_DECISION_KEY`, plus the throttling limits `DEMO_RATE_PER_MIN` (10) and `DEMO_DAILY_CALL_CAP` (500). These are exactly the names the API reads.
+- **App settings on it:** `AZURE_DECISION_ENDPOINT` (`https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone`), `AZURE_DECISION_DEPLOYMENT` (`dep-decision-1`), `AZURE_DECISION_KEY`, `AZURE_LLM_DEPLOYMENT` (`dep-gpt-6-luna`, the regular LLM the page compares against, same resource and key), plus the throttling limits `DEMO_RATE_PER_MIN` (10) and `DEMO_DAILY_CALL_CAP` (500, across both models). These are exactly the names the API reads.
 - **Budget `budget-decision-demo`** (only with `-BudgetEmail`): 5 per month in your billing currency, email at 80 % of actual spend and at 100 % of forecast spend. A budget alerts; it doesn't stop anything.
 - **GitHub secret `AZURE_STATIC_WEB_APPS_API_TOKEN`** on this repo (the Static Web App's deployment token), then a run of the `azure-static-web-apps` workflow, which deploys `web/` and `api/`.
 
 The Foundry account **proj-middagskos-resource** and the deployment **dep-decision-1** are only read. The key is read by Azure itself during the deployment (`listKeys()` in `main.bicep`): it is never printed, typed, put on a command line or written to a file. The script only checks that you are allowed to read it.
+
+### Custom domain
+
+`main.bicep` binds **decision.isainative.dev** (parameter `customDomain`; empty = none). Create the DNS record first: a CNAME from `decision` to the Static Web App's default hostname, DNS-only (grey cloud in Cloudflare) at least until Azure has validated it and issued the free certificate. To bind it without re-running the whole script:
+
+```powershell
+az staticwebapp hostname set -n swa-decision-demo -g rg-middagskos --hostname decision.isainative.dev
+```
 
 ## Before you start (once)
 
