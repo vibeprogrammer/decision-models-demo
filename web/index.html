@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decision models: live demo</title>
+<meta name="description" content="Microsoft-Decision-1 making four everyday coding-agent decisions, live, with measured latency.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <p class="eyebrow">AI Coding Summit Berlin · Maxim Salnikov</p>
+    <h1>Decision models, live</h1>
+    <p class="lede">A decision model returns a probability for every option instead of text. Pick a decision a coding agent makes every day and run it against the real model.</p>
+    <p id="badge" class="badge">Checking the model…</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <nav id="tabs" aria-label="Scenarios">
+    <button data-s="triage" aria-pressed="true">Triage issues</button>
+    <button data-s="gate" aria-pressed="false">Gate a command</button>
+    <button data-s="rank" aria-pressed="false">Rank fixes</button>
+    <button data-s="route" aria-pressed="false">Route a task</button>
+  </nav>
+
+  <section class="intro">
+    <p id="desc"></p>
+    <button id="run" class="run">Run live</button>
+  </section>
+
+  <p id="notice" class="notice" hidden></p>
+  <div id="summary" class="summary" hidden></div>
+  <ol id="results" class="results"></ol>
+</main>
+
+<footer class="wrap">
+  <p>The model decides; the code acts. Thresholds and policies live in the <a href="https://github.com/vibeprogrammer/decision-models-demo">demo repo</a>. Fixed scenarios only, rate-limited. Latency is measured server-side, per request, from the API to the model.</p>
+</footer>
+<script src="app.js" type="module"></script>
+</body>
+</html>

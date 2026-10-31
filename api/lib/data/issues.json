@@ -1,0 +1,66 @@
+[
+  {
+    "id": "#101",
+    "text": "App crashes with TypeError: cannot read properties of undefined when the date field is empty. Stack trace attached, happens every time on checkout.",
+    "expect": {
+      "kind": "bug",
+      "needs_human": false
+    }
+  },
+  {
+    "id": "#102",
+    "text": "Feature request: please add dark mode and a keyboard shortcut to toggle it.",
+    "expect": {
+      "kind": "feature",
+      "needs_human": false
+    }
+  },
+  {
+    "id": "#103",
+    "text": "How do I configure the CLI to use a proxy? I could not find it in the docs, is there an example?",
+    "expect": {
+      "kind": "question",
+      "needs_human": false
+    }
+  },
+  {
+    "id": "#104",
+    "text": "Security: the /export endpoint returns other users' data if you change the id in the URL. Possible data leak, please treat as vulnerability.",
+    "expect": {
+      "kind": "security",
+      "needs_human": true
+    }
+  },
+  {
+    "id": "#105",
+    "text": "Typo in README: 'recieve' should be 'receive', and the install section links to a dead page.",
+    "expect": {
+      "kind": "docs",
+      "needs_human": false
+    }
+  },
+  {
+    "id": "#106",
+    "text": "After upgrading to v3 the migration script deleted rows in production, we lost customer data. Need help restoring urgently.",
+    "expect": {
+      "kind": "bug",
+      "needs_human": true
+    }
+  },
+  {
+    "id": "#107",
+    "text": "Would be great to support exporting reports as CSV in addition to PDF, new option in the export menu.",
+    "expect": {
+      "kind": "feature",
+      "needs_human": false
+    }
+  },
+  {
+    "id": "#108",
+    "text": "Leaked API token found committed in config.js in the public repo, attacker could use the secret key. Rotate credentials.",
+    "expect": {
+      "kind": "security",
+      "needs_human": true
+    }
+  }
+]

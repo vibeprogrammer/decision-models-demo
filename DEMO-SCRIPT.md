@@ -39,6 +39,10 @@ Optional if time allows: `npm run azure:route` (route a task to a small model, a
 
 `npm run compare:azure` compares against a generative LLM. Unless `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL` are set, the LLM row is **simulated** and the output says so; say that out loud or skip it on stage.
 
+## Option: the web page instead of the terminal
+
+If the Static Web App is set up (web/README.md), open its URL, pick a tab, press **Run live**. The badge at the top says LIVE and the deployment name; each decision shows its probabilities and its measured latency. Run it once before the talk. It allows 10 live runs per minute per IP; if you hit that, the page switches to labelled mock output. The terminal demo below stays the fallback.
+
 ## If something goes wrong
 
 - No network or the key fails: the error has a hint. Switch to the fallback output from step 3, or run `npm run demo` (mock mode; the output says `MOCK MODE`, so say "this is the offline stand-in").

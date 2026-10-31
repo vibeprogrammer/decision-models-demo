@@ -155,6 +155,13 @@ The **live-azure** workflow (`.github/workflows/live-azure.yml`) runs the demo a
 
 It runs only when you start it, fails with "add AZURE_DECISION_KEY secret" if the secret is missing, and GitHub masks the key in logs. Latency from a GitHub runner (US datacenter) is not the latency from your laptop on stage; measure on the machine you present from.
 
+## Web demo (Azure Static Web Apps, Free plan)
+
+The same four scenarios as a web page with a **Run live** button, probability bars and measured latency. The page is static (`web/`), and the key stays in a managed Azure Functions API (`api/`). Only the fixed scenarios can run, it is rate-limited, and it falls back to labelled mock output when throttled or not configured.
+
+- Locally: `npm run web`, then open http://localhost:4280 (uses your `AZURE_DECISION_*` variables, mock without them).
+- On Azure: one-time setup in [web/README.md](web/README.md) (portal steps and an Azure CLI version). Deploys with `.github/workflows/azure-static-web-apps.yml`, which stays green and skips until the `AZURE_STATIC_WEB_APPS_API_TOKEN` secret exists.
+
 ## Other providers
 
 Set `DECISION_PROVIDER` in `.env` or your shell (or pass `--provider <name>` to `demo` / `compare`) and fill in that provider's variables:
@@ -191,6 +198,11 @@ bin/check.js                    azure:check preflight (one live request)
 src/timing.js                   measured latency + LIVE / MOCK banner
 DEMO-SCRIPT.md                  what to type and say on stage
 .github/workflows/live-azure.yml  run the live demo from GitHub Actions
+.github/workflows/azure-static-web-apps.yml  deploy the web demo
+web/                            web demo page (static, no build)
+api/                            managed Azure Functions API for the web demo
+bin/serve-web.js                npm run web: the web demo locally
+scripts/build-api.mjs           npm run build:api: refresh api/lib and web/fallback.json
 src/questions.js                choice / score / yesno + confidence
 src/scenarios.js                the four decisions and the policies that act on them
 src/providers/systemone.js      TypeSafe Jev + Microsoft Foundry (same wire format)
