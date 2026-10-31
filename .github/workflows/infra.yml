@@ -1,0 +1,73 @@
+name: infra
+# Validates the Azure infrastructure files: Bicep build + lint, and a parse check of the
+# PowerShell scripts in Windows PowerShell 5.1 and PowerShell 7. No Azure login needed.
+on:
+  push:
+    paths: ["infra/**", ".github/workflows/infra.yml"]
+  pull_request:
+    paths: ["infra/**", ".github/workflows/infra.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bicep build + lint
+        shell: pwsh
+        run: |
+          az bicep install --only-show-errors
+          az bicep build --file infra/main.bicep --stdout | Out-Null
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          az bicep build --file infra/budget.bicep --stdout | Out-Null
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          az bicep lint --file infra/main.bicep
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Parse PowerShell scripts (PowerShell 7)
+        shell: pwsh
+        run: |
+          $bad = 0
+          foreach ($f in Get-ChildItem infra -Filter *.ps1) {
+            $t = $null; $e = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$t, [ref]$e) | Out-Null
+            if ($e.Count) { $bad++; $e | ForEach-Object { Write-Host "::error file=infra/$($f.Name),line=$($_.Extent.StartLineNumber)::$($_.Message)" } }
+            else { Write-Host "$($f.Name): OK" }
+            if (@([IO.File]::ReadAllBytes($f.FullName) | Where-Object { $_ -gt 127 }).Count) { $bad++; Write-Host "::error file=infra/$($f.Name)::non-ASCII characters break Windows PowerShell 5.1" }
+          }
+          exit $bad
+
+      - name: Parse PowerShell scripts (Windows PowerShell 5.1)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $bad = 0
+          foreach ($f in Get-ChildItem infra -Filter *.ps1) {
+            $t = $null; $e = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$t, [ref]$e) | Out-Null
+            if ($e.Count) { $bad++; $e | ForEach-Object { Write-Host "::error file=infra/$($f.Name),line=$($_.Extent.StartLineNumber)::$($_.Message)" } }
+            else { Write-Host "$($f.Name): OK ($($PSVersionTable.PSVersion))" }
+          }
+          exit $bad
+
+      - name: PSScriptAnalyzer
+        if: runner.os == 'Linux'
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+          $r = Invoke-ScriptAnalyzer -Path infra -Recurse -Severity Error,Warning -ExcludeRule PSAvoidUsingWriteHost
+          $r | Format-Table -AutoSize RuleName, Severity, ScriptName, Line, Message | Out-String -Width 200 | Write-Host
+          if (@($r | Where-Object Severity -eq 'Error').Count) { exit 1 }
+
+      - name: Shell check (deploy.sh)
+        if: runner.os == 'Linux'
+        run: bash -n infra/deploy.sh && shellcheck -S warning infra/deploy.sh

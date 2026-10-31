@@ -160,7 +160,19 @@ It runs only when you start it, fails with "add AZURE_DECISION_KEY secret" if th
 The same four scenarios as a web page with a **Run live** button, probability bars and measured latency. The page is static (`web/`), and the key stays in a managed Azure Functions API (`api/`). Only the fixed scenarios can run, it is rate-limited, and it falls back to labelled mock output when throttled or not configured.
 
 - Locally: `npm run web`, then open http://localhost:4280 (uses your `AZURE_DECISION_*` variables, mock without them).
-- On Azure: one-time setup in [web/README.md](web/README.md) (portal steps and an Azure CLI version). Deploys with `.github/workflows/azure-static-web-apps.yml`, which stays green and skips until the `AZURE_STATIC_WEB_APPS_API_TOKEN` secret exists.
+- On Azure: one command, below. (Manual portal steps are in [web/README.md](web/README.md).) Deploys with `.github/workflows/azure-static-web-apps.yml`, which stays green and skips until the `AZURE_STATIC_WEB_APPS_API_TOKEN` secret exists.
+
+### Deploy to Azure with one command
+
+Needs the Azure CLI (`az login`), the GitHub CLI (`gh auth login`) and Contributor on the resource group `rg-middagskos`. From the repo folder:
+
+```powershell
+pwsh ./infra/deploy.ps1 -BudgetEmail you@example.com
+# Windows PowerShell 5.1:
+powershell -ExecutionPolicy Bypass -File .\infra\deploy.ps1 -BudgetEmail you@example.com
+```
+
+It creates the Static Web App `swa-decision-demo` (Free plan, West Europe) in `rg-middagskos`, sets the API's app settings (the model key is read by Azure from `proj-middagskos-resource`, never shown), adds a 5/month budget alert, puts the deployment token into this repo's secrets, runs the deploy and prints the URL. Safe to re-run. Cost: the Static Web App is free; you pay only for model calls (Microsoft-Decision-1: $0.042 per million input tokens, output free, per Microsoft's launch post), capped by the API's limits. Remove it with `pwsh ./infra/teardown.ps1`. Details: [infra/README.md](infra/README.md).
 
 ## Other providers
 
@@ -199,6 +211,8 @@ src/timing.js                   measured latency + LIVE / MOCK banner
 DEMO-SCRIPT.md                  what to type and say on stage
 .github/workflows/live-azure.yml  run the live demo from GitHub Actions
 .github/workflows/azure-static-web-apps.yml  deploy the web demo
+.github/workflows/infra.yml     validate infra/ (Bicep build, PowerShell parse)
+infra/                          one-command Azure deploy: deploy.ps1, teardown.ps1, main.bicep
 web/                            web demo page (static, no build)
 api/                            managed Azure Functions API for the web demo
 bin/serve-web.js                npm run web: the web demo locally

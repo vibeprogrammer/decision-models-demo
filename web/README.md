@@ -16,13 +16,21 @@ api/   managed Functions API (Node 22, v4 model): POST /api/decide, GET /api/hea
 
 Try it locally first (no Azure needed): `npm run web`, then open http://localhost:4280. It uses the same `AZURE_DECISION_*` variables as the CLI demo, and mock output without them.
 
-## Set it up (one time, about 10 minutes)
+## Set it up with one command (recommended)
+
+```powershell
+pwsh ./infra/deploy.ps1 -BudgetEmail you@example.com
+```
+
+That does all the steps below for you (Static Web App on the Free plan in `rg-middagskos`, app settings with the key read inside Azure, budget, GitHub token secret, deploy, health check). See [infra/README.md](../infra/README.md). The manual route follows, in case you prefer the portal.
+
+## Set it up by hand (one time, about 10 minutes)
 
 Do this in the Azure portal, signed in to the subscription that has the Foundry resource **proj-middagskos-resource**.
 
 1. **Create the Static Web App.** Portal: **Create a resource > Static Web App**.
-   - Resource group: the one that holds proj-middagskos-resource (then one budget covers both)
-   - Name: e.g. `decision-models-demo`
+   - Resource group: `rg-middagskos` (it holds proj-middagskos-resource, so one budget covers both)
+   - Name: `swa-decision-demo` (the name infra/teardown.ps1 expects)
    - Plan type: **Free**
    - Region (for the API): **West Europe**
    - Deployment source: **Other** (our GitHub workflow deploys; don't let the portal create its own workflow)
@@ -41,15 +49,15 @@ Do this in the Azure portal, signed in to the subscription that has the Foundry 
 
 ```powershell
 az login
-$rg = "<resource-group-of-proj-middagskos-resource>"
-az staticwebapp create --name decision-models-demo --resource-group $rg --location westeurope --sku Free
+$rg = "rg-middagskos"
+az staticwebapp create --name swa-decision-demo --resource-group $rg --location westeurope --sku Free
 
 # deployment token straight into the GitHub secret (never shown on screen; needs the GitHub CLI)
-az staticwebapp secrets list --name decision-models-demo --resource-group $rg --query "properties.apiKey" -o tsv | gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN --repo vibeprogrammer/decision-models-demo
+az staticwebapp secrets list --name swa-decision-demo --resource-group $rg --query "properties.apiKey" -o tsv | gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN --repo vibeprogrammer/decision-models-demo
 
 # model settings; the key is read from Azure, not typed
 $key = az cognitiveservices account keys list --name proj-middagskos-resource --resource-group $rg --query key1 -o tsv
-az staticwebapp appsettings set --name decision-models-demo --resource-group $rg --setting-names "AZURE_DECISION_ENDPOINT=https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone" "AZURE_DECISION_DEPLOYMENT=dep-decision-1" "AZURE_DECISION_KEY=$key"
+az staticwebapp appsettings set --name swa-decision-demo --resource-group $rg --setting-names "AZURE_DECISION_ENDPOINT=https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone" "AZURE_DECISION_DEPLOYMENT=dep-decision-1" "AZURE_DECISION_KEY=$key"
 Remove-Variable key
 
 gh workflow run azure-static-web-apps.yml --repo vibeprogrammer/decision-models-demo

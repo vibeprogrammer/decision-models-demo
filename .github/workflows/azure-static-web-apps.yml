@@ -2,7 +2,8 @@ name: azure-static-web-apps
 # Deploys the web demo (web/) and its API (api/, managed Azure Functions) to Azure Static
 # Web Apps, Free plan. Needs the repository secret AZURE_STATIC_WEB_APPS_API_TOKEN
 # (the deployment token of the Static Web App). Until that secret exists, this workflow
-# skips the deploy and stays green. Setup steps: web/README.md.
+# skips the deploy and stays green. Setup: pwsh ./infra/deploy.ps1 (infra/README.md),
+# or the manual steps in web/README.md.
 on:
   push:
     branches: [main]
