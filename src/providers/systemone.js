@@ -47,6 +47,7 @@ const HINTS = {
   403: "this identity has no access to the deployment",
   404: "wrong endpoint or path: check AZURE_DECISION_ENDPOINT against the deployment details page",
   422: "the deployment name or a question isn't supported: AZURE_DECISION_DEPLOYMENT must be your DEPLOYMENT name",
+  DeploymentNotFound: "key and endpoint are fine, but no deployment has this name: set AZURE_DECISION_DEPLOYMENT to the deployment name shown in the Foundry portal (`npm run azure:check` lists the deployments it can see)",
   429: "rate limit hit: wait a few seconds, or raise the deployment's quota",
 };
 
@@ -72,7 +73,8 @@ export function systemOneProvider({ name, url, headers, model, fetchImpl = globa
         }
         if (!res.ok) {
           // Never print request headers: they carry the key.
-          const hint = hints[res.status] ? `\n  hint: ${hints[res.status]}` : "";
+          const code = /DeploymentNotFound/.test(text) ? "DeploymentNotFound" : res.status;
+          const hint = hints[code] ? `\n  hint: ${hints[code]}` : "";
           throw new Error(`${name}: HTTP ${res.status} ${text.slice(0, 300)}${hint}`);
         }
         return { ...fromSystemOneResponse(JSON.parse(text)), retries: attempt };
@@ -119,6 +121,22 @@ export function foundryConfig(env = process.env) {
 export function foundryUrl(endpoint) {
   const base = String(endpoint).trim().replace(/\/+$/, "");
   return /\/v1\/systemone$/i.test(base) ? base : `${base}${SYSTEMONE_PATH}`;
+}
+
+// Best effort: list the deployments on the resource with the same key (data-plane
+// "list deployments", api-version 2022-12-01). Names only; used by azure:check when
+// the deployment name is wrong. Returns [] if the resource doesn't offer it.
+export async function listFoundryDeployments(env = process.env, fetchImpl = globalThis.fetch) {
+  const c = foundryConfig(env);
+  if (!c.ready) return [];
+  const origin = new URL(c.url).origin;
+  const headers = c.key ? { "api-key": c.key } : { Authorization: `Bearer ${c.token}` };
+  try {
+    const res = await fetchImpl(`${origin}/openai/deployments?api-version=2022-12-01`, { headers, signal: AbortSignal.timeout(15000) });
+    if (!res.ok) return [];
+    const j = await res.json();
+    return (j.data ?? j.value ?? []).map((d) => ({ name: d.id ?? d.name, model: d.model ?? d.properties?.model?.name, status: d.status ?? d.properties?.provisioningState }));
+  } catch { return []; }
 }
 
 export function foundry(env = process.env, fetchImpl) {

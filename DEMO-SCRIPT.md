@@ -19,7 +19,7 @@ About 90 seconds, slide 8 ("Demo: four decisions inside a coding agent"). Font s
    npm run azure:check
    ```
 
-   401: key wrong. 404: endpoint wrong. 422: deployment name wrong, set `$env:AZURE_DECISION_DEPLOYMENT`.
+   401: key wrong. 404 `DeploymentNotFound` or 422: deployment name wrong, set `$env:AZURE_DECISION_DEPLOYMENT` (the check lists the names it can see). Other 404: endpoint wrong.
 
 3. Run the full demo once (`npm run demo:azure`) and keep that terminal output, or a screenshot of it, as your fallback. Note the median latency you see on the venue Wi-Fi.
 4. Clear the screen: `cls` (cmd/PowerShell) or `clear`.

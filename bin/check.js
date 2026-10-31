@@ -3,7 +3,7 @@
 // Usage: npm run azure:check     Prints the config (never the key), sends ONE small request,
 // and prints status, measured latency and the answer. Exit code 0 = ready for stage.
 import { loadEnv } from "../src/env.js";
-import { foundry, foundryConfig } from "../src/providers/systemone.js";
+import { foundry, foundryConfig, listFoundryDeployments } from "../src/providers/systemone.js";
 import { choice } from "../src/questions.js";
 
 loadEnv();
@@ -39,5 +39,12 @@ try {
   console.log("\nReady. Run: npm run demo:azure");
 } catch (e) {
   console.error(`\nFAILED: ${e.message}`);
+  if (/DeploymentNotFound|HTTP 404|HTTP 422/.test(e.message)) {
+    const ds = await listFoundryDeployments(process.env);
+    if (ds.length) {
+      console.log("\nDeployments on this resource (set AZURE_DECISION_DEPLOYMENT to one of these names):");
+      for (const d of ds) console.log(`  ${d.name}   model: ${d.model ?? "?"}${d.status ? `   ${d.status}` : ""}`);
+    } else console.log("\nCouldn't list the deployments with this key. Copy the deployment name from the Foundry portal (Models + endpoints).");
+  }
   process.exit(1);
 }
