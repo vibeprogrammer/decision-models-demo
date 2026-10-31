@@ -29,11 +29,20 @@ export function buildPrompt(state, questions) {
     "",
     "QUESTIONS:",
   ];
+  const shape = [];
   for (const [id, q] of Object.entries(questions)) {
-    if (q.type === "choice") lines.push(`${id} (choice): ${q.instructions} Options: ${Object.entries(q.options).map(([k, d]) => `${k} = ${d}`).join("; ")}`);
-    else if (q.type === "score") lines.push(`${id} (score): ${q.instructions} Levels: ${q.levels.map((d, i) => `${i} = ${d}`).join("; ")}`);
-    else lines.push(`${id} (yesno): ${q.instructions}${q.criteria ? ` true = ${q.criteria.true}; false = ${q.criteria.false}` : ""}`);
+    if (q.type === "choice") {
+      lines.push(`${id} (choice): ${q.instructions} Options: ${Object.entries(q.options).map(([k, d]) => `${k} = ${d}`).join("; ")}`);
+      shape.push(`"${id}": "${Object.keys(q.options).join("|")}"`);
+    } else if (q.type === "score") {
+      lines.push(`${id} (score): ${q.instructions} Levels: ${q.levels.map((d, i) => `${i} = ${d}`).join("; ")}`);
+      shape.push(`"${id}": <integer 0-${q.levels.length - 1}>`);
+    } else {
+      lines.push(`${id} (yesno): ${q.instructions}${q.criteria ? ` true = ${q.criteria.true}; false = ${q.criteria.false}` : ""}`);
+      shape.push(`"${id}": true|false`);
+    }
   }
+  lines.push("", `ANSWER FORMAT (plain values, no nested objects): {${shape.join(", ")}}`);
   return lines.join("\n");
 }
 
