@@ -1,17 +1,26 @@
 {
   "name": "decision-models-demo",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Decision models vs a generative LLM on everyday coding-agent decisions. Vendor-agnostic, zero dependencies, runs with no API keys in mock mode.",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "demo": "node bin/demo.js",
+    "demo:azure": "node bin/demo.js --provider azure",
     "triage": "node bin/demo.js triage",
     "gate": "node bin/demo.js gate",
     "rank": "node bin/demo.js rank",
     "route": "node bin/demo.js route",
     "compare": "node bin/compare.js",
+    "compare:azure": "node bin/compare.js --provider azure",
+    "azure:check": "node bin/check.js",
+    "azure:triage": "node bin/demo.js triage --provider azure",
+    "azure:gate": "node bin/demo.js gate --provider azure",
+    "azure:rank": "node bin/demo.js rank --provider azure",
+    "azure:route": "node bin/demo.js route --provider azure",
     "test": "node --test"
   }
 }

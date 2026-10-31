@@ -69,7 +69,8 @@ export function llmBaseline(env = process.env, fetchImpl = globalThis.fetch) {
     async decide(state, questions) {
       const res = await fetchImpl(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(env.LLM_API_KEY ? { Authorization: `Bearer ${env.LLM_API_KEY}` } : {}) },
+        // LLM_AUTH=api-key sends the key as an "api-key" header (Azure OpenAI / Foundry); default is Bearer.
+        headers: { "Content-Type": "application/json", ...(env.LLM_API_KEY ? ((env.LLM_AUTH || "").toLowerCase() === "api-key" ? { "api-key": env.LLM_API_KEY } : { Authorization: `Bearer ${env.LLM_API_KEY}` }) : {}) },
         body: JSON.stringify({ model: env.LLM_MODEL, temperature: 0, messages: [{ role: "user", content: buildPrompt(state, questions) }] }),
       });
       const text = await res.text();
