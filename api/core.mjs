@@ -68,6 +68,8 @@ export function cleanIo(io, deployments = []) {
     delete response.prompt_filter_results;
     for (const c of response.choices ?? []) delete c.content_filter_results;
     delete response.system_fingerprint;
+    delete response.routing; // serving internals, not part of the API contract
+    if (response.usage) delete response.usage.latency_checkpoint;
   }
   let text = JSON.stringify({ request: io.request, response });
   for (const d of deployments.filter(Boolean)) text = text.split(JSON.stringify(d)).join('"<deployment>"');

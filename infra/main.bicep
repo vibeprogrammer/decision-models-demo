@@ -2,6 +2,7 @@
 //   - Azure Static Web App, Free plan, with its managed Azure Functions API (no separate
 //     Function App, no hosting bill)
 //   - the app settings the API reads (AZURE_DECISION_ENDPOINT, _DEPLOYMENT, _KEY, AZURE_LLM_DEPLOYMENT)
+//   - the custom domain decision.isainative.dev (CNAME validation, free managed certificate)
 //   - optional: a monthly Consumption budget on the resource group with email alerts
 //
 // The Foundry (AI Services) account that hosts the model is only READ here ("existing"):
@@ -46,6 +47,9 @@ param decisionEndpoint string = ''
 @description('Optional override for the API key. Empty (recommended) = read key1 from the Foundry account inside Azure.')
 @secure()
 param decisionKey string = ''
+
+@description('Custom domain for the web demo. A CNAME from this name to the Static Web App\'s default hostname must exist first (DNS-only, not proxied). Empty = none.')
+param customDomain string = 'decision.isainative.dev'
 
 @description('Live runs per minute per visitor IP (the API returns 429 above it and the page keeps its recorded run).')
 @minValue(1)
@@ -113,6 +117,15 @@ resource swaSettings 'Microsoft.Web/staticSites/config@2024-04-01' = {
   }
 }
 
+// Free plan includes custom domains and their managed certificates.
+resource domain 'Microsoft.Web/staticSites/customDomains@2024-04-01' = if (!empty(customDomain)) {
+  parent: swa
+  name: empty(customDomain) ? 'none' : customDomain
+  properties: {
+    validationMethod: 'cname-delegation'
+  }
+}
+
 module budget 'budget.bicep' = if (!empty(budgetContactEmail)) {
   name: 'budget-${swaName}'
   params: {
@@ -131,6 +144,9 @@ output name string = swa.name
 
 @description('Endpoint written to AZURE_DECISION_ENDPOINT.')
 output decisionEndpoint string = endpoint
+
+@description('Custom domain bound to the web demo (empty = none).')
+output customDomain string = customDomain
 
 @description('Whether a budget was created or updated.')
 output budgetCreated bool = !empty(budgetContactEmail)

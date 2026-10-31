@@ -123,6 +123,8 @@ test("example JSON hides deployment names and content-filter noise", () => {
   const io = cleanIo({ request: { model: "dep-gpt-6-luna", messages: [] }, response: { model: "gpt-6-luna", prompt_filter_results: [1], choices: [{ content_filter_results: {}, message: { content: "{}" } }] } }, ["dep-gpt-6-luna"]);
   assert.equal(io.request.model, "<deployment>"); assert.equal(io.response.model, "gpt-6-luna");
   assert.equal(io.response.prompt_filter_results, undefined); assert.equal(io.response.choices[0].content_filter_results, undefined);
+  const io2 = cleanIo({ request: {}, response: { routing: { x: 1 }, usage: { prompt_tokens: 1, latency_checkpoint: {} } } });
+  assert.equal(io2.response.routing, undefined); assert.deepEqual(io2.response.usage, { prompt_tokens: 1 });
 });
 
 // ---- the regular-model side: real chat completions, bounded output, no simulation ----
