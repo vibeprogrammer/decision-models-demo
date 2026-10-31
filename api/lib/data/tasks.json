@@ -1,0 +1,32 @@
+[
+  {
+    "id": "r1",
+    "text": "Rename the variable usr to user in one file and fix the import path.",
+    "expect": "small"
+  },
+  {
+    "id": "r2",
+    "text": "Design the migration of our monolith authentication to a new service, plan the steps across 40 modules, reason about edge cases and rollback.",
+    "expect": "frontier"
+  },
+  {
+    "id": "r3",
+    "text": "Add a missing semicolon and format the file with prettier.",
+    "expect": "small"
+  },
+  {
+    "id": "r4",
+    "text": "Change the pricing logic for enterprise customers in the billing contract code; legal approval required before merge.",
+    "expect": "human"
+  },
+  {
+    "id": "r5",
+    "text": "Find the root cause of a race condition that only appears under load across three services, then propose a fix and reason about concurrency.",
+    "expect": "frontier"
+  },
+  {
+    "id": "r6",
+    "text": "Write a docstring for a small helper function.",
+    "expect": "small"
+  }
+]

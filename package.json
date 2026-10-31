@@ -21,6 +21,8 @@
     "azure:gate": "node bin/demo.js gate --provider azure",
     "azure:rank": "node bin/demo.js rank --provider azure",
     "azure:route": "node bin/demo.js route --provider azure",
-    "test": "node --test"
+    "test": "node --test",
+    "build:api": "node scripts/build-api.mjs",
+    "web": "node bin/serve-web.js"
   }
 }

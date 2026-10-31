@@ -1,0 +1,10 @@
+{
+  "platform": {
+    "apiRuntime": "node:22"
+  },
+  "globalHeaders": {
+    "Content-Security-Policy": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin"
+  }
+}

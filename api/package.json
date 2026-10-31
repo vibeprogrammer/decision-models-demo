@@ -1,0 +1,10 @@
+{
+  "name": "decision-models-demo-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Managed Azure Functions API for the web demo (Static Web Apps).",
+  "main": "src/functions/*.js",
+  "dependencies": {
+    "@azure/functions": "^4.5.0"
+  }
+}
