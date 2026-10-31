@@ -15,7 +15,7 @@ You need [Node.js 20 or later](https://nodejs.org/). Check with `node --version`
 **Windows (PowerShell or cmd)**
 
 ```powershell
-git clone https://github.com/vibeprogrammer/decision-models-demo.git
+git clone https://github.com/webmaxru/decision-models-demo.git
 cd decision-models-demo
 npm run demo
 npm run compare
@@ -25,7 +25,7 @@ npm test
 **macOS / Linux (Terminal)**
 
 ```bash
-git clone https://github.com/vibeprogrammer/decision-models-demo.git
+git clone https://github.com/webmaxru/decision-models-demo.git
 cd decision-models-demo
 npm run demo
 npm run compare
@@ -149,7 +149,7 @@ Microsoft Entra ID instead of a key: `az login`, then set `AZURE_DECISION_TOKEN`
 
 The **live-azure** workflow (`.github/workflows/live-azure.yml`) runs the demo against Azure from GitHub and puts the output in the run's summary.
 
-1. Repo **Settings > Secrets and variables > Actions > Secrets > New repository secret**, name `AZURE_DECISION_KEY`, value = your key. (CLI: `gh secret set AZURE_DECISION_KEY --repo vibeprogrammer/decision-models-demo` prompts for it.)
+1. Repo **Settings > Secrets and variables > Actions > Secrets > New repository secret**, name `AZURE_DECISION_KEY`, value = your key. (CLI: `gh secret set AZURE_DECISION_KEY --repo webmaxru/decision-models-demo` prompts for it.)
 2. The repo variables `AZURE_DECISION_ENDPOINT` and `AZURE_DECISION_DEPLOYMENT` (`dep-decision-1`) are already set (Variables tab).
 3. **Actions > live-azure > Run workflow**, pick a scenario (`all`, `triage`, `gate`, `rank`, `route`, `compare`).
 

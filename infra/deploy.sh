@@ -7,12 +7,12 @@
 #   ./infra/deploy.sh --budget-email you@example.com [--yes] [--skip-github] [--no-wait]
 # Other options (defaults): --resource-group rg-middagskos --location westeurope
 #   --swa-name swa-decision-demo --foundry-account proj-middagskos-resource
-#   --deployment dep-decision-1 --budget-amount 5 --repo vibeprogrammer/decision-models-demo
+#   --deployment dep-decision-1 --budget-amount 5 --repo webmaxru/decision-models-demo
 set -euo pipefail
 
 RG=rg-middagskos; LOCATION=westeurope; SWA=swa-decision-demo; FOUNDRY=proj-middagskos-resource
 FOUNDRY_RG=""; DEPLOYMENT=dep-decision-1; ENDPOINT=""; BUDGET_EMAIL=""; BUDGET_AMOUNT=5
-BUDGET_NAME=budget-decision-demo; RATE=10; DAILY=500; REPO=vibeprogrammer/decision-models-demo
+BUDGET_NAME=budget-decision-demo; RATE=10; DAILY=500; REPO=webmaxru/decision-models-demo
 BRANCH=main; YES=0; SKIP_GH=0; NO_WAIT=0
 while [ $# -gt 0 ]; do
   case "$1" in

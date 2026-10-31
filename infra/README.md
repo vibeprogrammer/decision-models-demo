@@ -24,9 +24,11 @@ The Foundry account **proj-middagskos-resource** and the deployment **dep-decisi
 ## Before you start (once)
 
 1. **Azure CLI**: `winget install -e --id Microsoft.AzureCLI` (macOS: `brew install azure-cli`), then `az login`. Bicep is installed by the script if missing.
-2. **GitHub CLI**: `winget install -e --id GitHub.cli` (macOS: `brew install gh`), then `gh auth login` with an account that can manage secrets on `vibeprogrammer/decision-models-demo`. Without `gh` the script still deploys Azure and prints the two GitHub steps for you to click.
+2. **GitHub CLI**: `winget install -e --id GitHub.cli` (macOS: `brew install gh`), then `gh auth login` with an account that can manage secrets on `webmaxru/decision-models-demo`. Without `gh` the script still deploys Azure and prints the two GitHub steps for you to click.
 3. **Azure rights**: Contributor (or Owner) on `rg-middagskos`, which includes reading the Foundry keys. Creating the budget also needs Contributor/Owner (or Cost Management Contributor) on the resource group.
-4. A clone of this repo: `git clone https://github.com/vibeprogrammer/decision-models-demo.git` and `cd decision-models-demo`.
+4. A clone of this repo: `git clone https://github.com/webmaxru/decision-models-demo.git` and `cd decision-models-demo`.
+
+Key authentication must be enabled on the Foundry account (`properties.disableLocalAuth=false`). The script checks key-list access with `--output none`, so neither key is printed. On Windows, a `length(key1)` query can break in the Azure CLI's CMD launcher even with valid permissions; only an actual Azure authorization error warrants changing roles.
 
 ## Deploy
 

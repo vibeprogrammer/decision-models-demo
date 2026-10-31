@@ -53,14 +53,14 @@ $rg = "rg-middagskos"
 az staticwebapp create --name swa-decision-demo --resource-group $rg --location westeurope --sku Free
 
 # deployment token straight into the GitHub secret (never shown on screen; needs the GitHub CLI)
-az staticwebapp secrets list --name swa-decision-demo --resource-group $rg --query "properties.apiKey" -o tsv | gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN --repo vibeprogrammer/decision-models-demo
+az staticwebapp secrets list --name swa-decision-demo --resource-group $rg --query "properties.apiKey" -o tsv | gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN --repo webmaxru/decision-models-demo
 
 # model settings; the key is read from Azure, not typed
 $key = az cognitiveservices account keys list --name proj-middagskos-resource --resource-group $rg --query key1 -o tsv
 az staticwebapp appsettings set --name swa-decision-demo --resource-group $rg --setting-names "AZURE_DECISION_ENDPOINT=https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone" "AZURE_DECISION_DEPLOYMENT=dep-decision-1" "AZURE_DECISION_KEY=$key"
 Remove-Variable key
 
-gh workflow run azure-static-web-apps.yml --repo vibeprogrammer/decision-models-demo
+gh workflow run azure-static-web-apps.yml --repo webmaxru/decision-models-demo
 ```
 
 Without `--source`, `az staticwebapp create` makes the app without linking a repo, which is what we want (the token-based workflow deploys).

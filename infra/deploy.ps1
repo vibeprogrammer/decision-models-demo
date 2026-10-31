@@ -38,7 +38,7 @@ param(
   [string]$BudgetName = 'budget-decision-demo',
   [int]$RatePerMinute = 10,
   [int]$DailyCallCap = 500,
-  [string]$Repo = 'vibeprogrammer/decision-models-demo',
+  [string]$Repo = 'webmaxru/decision-models-demo',
   [string]$Branch = 'main',
   [string]$Subscription = '',
   [switch]$SkipGitHub,
@@ -118,7 +118,7 @@ if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
   Exit-WithHint 'Azure CLI (az) is not installed.' 'Install it: winget install -e --id Microsoft.AzureCLI   (macOS: brew install azure-cli), open a new terminal, run az login, re-run.'
 }
 if (-not (Test-Path $mainBicep) -or -not (Test-Path $budgetBicep)) {
-  Exit-WithHint "main.bicep / budget.bicep not found next to this script ($infraDir)." 'Run the script from a full clone of the repo: git clone https://github.com/vibeprogrammer/decision-models-demo.git'
+  Exit-WithHint "main.bicep / budget.bicep not found next to this script ($infraDir)." 'Run the script from a full clone of the repo: git clone https://github.com/webmaxru/decision-models-demo.git'
 }
 $azv = Invoke-Native -Exe 'az' -Arguments @('version', '-o', 'json')
 $azVersion = 'unknown version'
@@ -189,10 +189,14 @@ if (-not $subdomain) { $subdomain = $FoundryAccount }
 Write-Ok ("found (endpoint host {0}.services.ai.azure.com)" -f $subdomain)
 if (-not $Endpoint) { $Endpoint = "https://$subdomain.services.ai.azure.com/providers/microsoft/v1/systemone" }
 
-# Only the LENGTH of the key is read, to prove access; the key itself stays in Azure.
-$klen = Invoke-Az -Arguments @('cognitiveservices', 'account', 'keys', 'list', '--name', $FoundryAccount, '--resource-group', $FoundryResourceGroup, '--query', 'length(key1)', '-o', 'tsv') -What 'Checking access to the Foundry keys' -Hint "Your account needs permission to list keys on $FoundryAccount (Cognitive Services Contributor, Contributor or Owner). If local (key) auth is disabled on the account, enable it or ask the owner." -AllowFail
-if ($klen.Code -ne 0) {
-  Exit-WithHint ("Cannot read the keys of {0}.`n{1}" -f $FoundryAccount, $klen.Err) "Your account needs permission to list keys on $FoundryAccount (Cognitive Services Contributor, Contributor or Owner). If key auth is disabled on the account, enable it or ask the owner."
+# Suppress all key output and avoid queries with parentheses, which Windows az.cmd misparses.
+$keyAccess = Invoke-Az -Arguments @('cognitiveservices', 'account', 'keys', 'list', '--name', $FoundryAccount, '--resource-group', $FoundryResourceGroup, '--output', 'none') -What 'Checking access to the Foundry keys' -AllowFail
+if ($keyAccess.Code -ne 0) {
+  $keyHint = Get-AzHint $keyAccess.Err
+  if ($keyAccess.Err -match 'AuthorizationFailed|does not have authorization') {
+    $keyHint = "Your account needs Microsoft.CognitiveServices/accounts/listKeys/action on $FoundryAccount. Ask the resource owner to grant a role with that permission."
+  }
+  Exit-WithHint ("Cannot read the keys of {0}.`n{1}" -f $FoundryAccount, $keyAccess.Err) $keyHint
 }
 Write-Ok 'key access confirmed (the key is read by Azure during the deployment, never shown here)'
 
@@ -300,8 +304,9 @@ for ($i = 0; $i -lt 12 -and -not $runId; $i++) {
   Start-Sleep -Seconds 5
   $rl = Invoke-Native -Exe 'gh' -Arguments @('run', 'list', '--repo', $Repo, '--workflow', 'azure-static-web-apps.yml', '--limit', '5', '--json', 'databaseId,createdAt,event')
   if ($rl.Code -eq 0 -and $rl.Out) {
-    foreach ($run in @($rl.Out | ConvertFrom-Json)) {
-      $created = [DateTime]::Parse([string]$run.createdAt, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AdjustToUniversal)
+    # Enumerate the parsed array directly; PowerShell 5.1 does not unroll JSON arrays.
+    foreach ($run in ($rl.Out | ConvertFrom-Json)) {
+      $created = ([DateTime]$run.createdAt).ToUniversalTime()
       if ($run.event -eq 'workflow_dispatch' -and $created -ge $dispatchTime) { $runId = $run.databaseId; break }
     }
   }

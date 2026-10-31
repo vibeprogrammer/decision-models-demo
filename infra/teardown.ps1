@@ -20,7 +20,7 @@ param(
   [string]$ResourceGroup = 'rg-middagskos',
   [string]$SwaName = 'swa-decision-demo',
   [string]$BudgetName = 'budget-decision-demo',
-  [string]$Repo = 'vibeprogrammer/decision-models-demo',
+  [string]$Repo = 'webmaxru/decision-models-demo',
   [string]$Subscription = '',
   [switch]$RemoveGitHubSecret,
   [switch]$Yes
