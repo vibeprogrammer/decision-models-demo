@@ -80,6 +80,10 @@ One scenario at a time: `npm run azure:triage`, `azure:gate`, `azure:rank`, `azu
 
 Without a key, `demo:azure` and `compare:azure` print a NOTE and fall back to mock mode, so nothing breaks on stage. Add `--strict` to fail instead.
 
+### Measured live (2026-10-31, from a GitHub runner)
+
+`live-azure` on deployment `dep-decision-1`: all 21 labelled items correct (triage 8/8, gate 7/7, route 6/6) and the test-deleting fix ranked last. Median latency per request 218 to 287 ms by scenario, first call about 1.1 s (connection setup). That's from a GitHub-hosted runner in the US to the Azure resource; your laptop on conference Wi-Fi will differ, so run `npm run azure:check` there. The data set is small and was written for this demo: it shows the mechanics, it isn't a benchmark.
+
 ### 1. Find the key and deployment name
 
 In the [Foundry portal](https://ai.azure.com), open your Microsoft-Decision-1 deployment. Its details page shows the endpoint, the **deployment name** and the **API key** (Microsoft's docs: "On the deployment details page, copy the resource endpoint, deployment name, and API key"). The same keys are in the Azure portal: your Foundry resource, then **Resource Management > Keys and Endpoint** (KEY 1 or KEY 2). Or with the Azure CLI:
@@ -96,7 +100,7 @@ The deployment name defaults to `Microsoft-Decision-1` here. If you named your d
 | --- | --- |
 | `AZURE_DECISION_ENDPOINT` | `https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone` (the resource URL without the path also works) |
 | `AZURE_DECISION_KEY` | your key (sent as the `api-key` header) |
-| `AZURE_DECISION_DEPLOYMENT` | optional, default `Microsoft-Decision-1` |
+| `AZURE_DECISION_DEPLOYMENT` | `dep-decision-1` (this demo's deployment; default if unset: `Microsoft-Decision-1`) |
 | `AZURE_DECISION_TOKEN` | optional instead of the key: a Microsoft Entra ID token, sent as `Authorization: Bearer` |
 
 Option A, a `.env` file (git-ignored, read automatically):
@@ -111,6 +115,7 @@ Option B, the current terminal only:
 
 ```powershell
 $env:AZURE_DECISION_ENDPOINT = "https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone"
+$env:AZURE_DECISION_DEPLOYMENT = "dep-decision-1"
 $env:AZURE_DECISION_KEY = "<paste-key>"
 npm run azure:check
 npm run demo:azure
@@ -120,6 +125,7 @@ npm run demo:azure
 
 ```bat
 set AZURE_DECISION_ENDPOINT=https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone
+set AZURE_DECISION_DEPLOYMENT=dep-decision-1
 set AZURE_DECISION_KEY=<paste-key>
 npm run azure:check
 npm run demo:azure
@@ -129,6 +135,7 @@ npm run demo:azure
 
 ```bash
 export AZURE_DECISION_ENDPOINT="https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone"
+export AZURE_DECISION_DEPLOYMENT="dep-decision-1"
 read -rs AZURE_DECISION_KEY && export AZURE_DECISION_KEY   # paste, Enter (not shown, not in history)
 npm run azure:check
 npm run demo:azure
@@ -143,7 +150,7 @@ Microsoft Entra ID instead of a key: `az login`, then set `AZURE_DECISION_TOKEN`
 The **live-azure** workflow (`.github/workflows/live-azure.yml`) runs the demo against Azure from GitHub and puts the output in the run's summary.
 
 1. Repo **Settings > Secrets and variables > Actions > Secrets > New repository secret**, name `AZURE_DECISION_KEY`, value = your key. (CLI: `gh secret set AZURE_DECISION_KEY --repo vibeprogrammer/decision-models-demo` prompts for it.)
-2. The repo variable `AZURE_DECISION_ENDPOINT` is already set (Variables tab). Add `AZURE_DECISION_DEPLOYMENT` there if your deployment isn't called `Microsoft-Decision-1`.
+2. The repo variables `AZURE_DECISION_ENDPOINT` and `AZURE_DECISION_DEPLOYMENT` (`dep-decision-1`) are already set (Variables tab).
 3. **Actions > live-azure > Run workflow**, pick a scenario (`all`, `triage`, `gate`, `rank`, `route`, `compare`).
 
 It runs only when you start it, fails with "add AZURE_DECISION_KEY secret" if the secret is missing, and GitHub masks the key in logs. Latency from a GitHub runner (US datacenter) is not the latency from your laptop on stage; measure on the machine you present from.
