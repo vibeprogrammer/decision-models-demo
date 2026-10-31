@@ -1,20 +1,20 @@
 # Web demo on Azure Static Web Apps (Free plan)
 
-A one-page version of the demo: pick a scenario, press **Run live**, see each decision's probabilities and the measured latency. It runs on Azure Static Web Apps **Free** with its **managed** Azure Functions API, so there is no separate Function App and no hosting bill. The only thing that costs money is calls to the model, and those are capped (below).
+A one-page race between the decision model and a regular LLM: pick a use case, press **Run live**, and both models answer every item side by side with live clocks, latency bars, correctness badges, probabilities, tokens, and the real request/response JSON. It runs on Azure Static Web Apps **Free** with its **managed** Azure Functions API, so there is no separate Function App and no hosting bill. The only thing that costs money is calls to the models, and those are capped (below).
 
 ```
 web/   static page (index.html, app.js, style.css), no build step
-api/   managed Functions API (Node 22, v4 model): POST /api/decide, GET /api/health
+api/   managed Functions API (Node 22, v4 model): POST /api/run, POST /api/decide, GET /api/health
        api/lib/ is a generated copy of src/ and data/ (npm run build:api)
 ```
 
-- The key stays server-side in an app setting. The browser only ever calls `/api/decide` with a scenario name.
-- Only the four fixed scenarios run. No free text reaches the model, so the API can't be used as a free model proxy. Bodies over 512 bytes are rejected.
-- Throttling: 10 live runs per minute per IP (`DEMO_RATE_PER_MIN`) and 500 model calls per day (`DEMO_DAILY_CALL_CAP`). A triage run is 8 calls, gate 7, rank 4, route 6. Over the limit the API returns 429 and the page shows mock output instead.
+- The key stays server-side in an app setting. The browser calls `/api/run` with a use-case name, then `/api/decide` with the signed run token, a lane (`decision` or `llm`) and an item number. Each lane/item answers once per run; a run expires after 3 minutes.
+- Only the four fixed scenarios run. No free text reaches either model, so the API can't be used as a free model proxy. Bodies over 512 bytes are rejected.
+- Throttling: 10 live runs per minute per IP (`DEMO_RATE_PER_MIN`) and 500 model calls per day across both models (`DEMO_DAILY_CALL_CAP`). A run reserves all its calls up front: triage 16 (8 items × 2 models), gate 14, rank 8, route 12. Over the limit `/api/run` returns 429 before any model is called, and the page keeps the recorded run. The LLM's output is capped at 300 tokens per call (`LLM_MAX_OUTPUT_TOKENS`).
 - Honest limit: these counters are in-memory per function instance. A restart resets them, and if Azure runs several instances each counts on its own. The hard ceiling is the model deployment's own rate limit plus the budget alert below.
-- No key, throttled or model down: the page shows mock output from `web/fallback.json`, clearly labelled MOCK, with no latency numbers.
+- No simulation: before a run, and when the models are throttled or not configured, the page shows `web/recorded.json`, a real run recorded from the live site (`node scripts/record.mjs <site-url>`, 50 model calls), labelled with its date.
 
-Try it locally first (no Azure needed): `npm run web`, then open http://localhost:4280. It uses the same `AZURE_DECISION_*` variables as the CLI demo, and mock output without them.
+Try it locally first (no Azure needed): `npm run web`, then open http://localhost:4280. It uses the same `AZURE_*` variables as the CLI demo; without them it shows the recorded run.
 
 ## Set it up with one command (recommended)
 
@@ -37,13 +37,14 @@ Do this in the Azure portal, signed in to the subscription that has the Foundry 
    - **Review + create > Create**
 2. **Copy the deployment token.** Open the new Static Web App > **Overview > Manage deployment token** > copy.
 3. **Give it to GitHub.** GitHub repo **Settings > Secrets and variables > Actions > New repository secret**: name `AZURE_STATIC_WEB_APPS_API_TOKEN`, value = the token.
-4. **Give the API the model settings.** Static Web App > **Settings > Environment variables** > Production > **+ Add**, three times:
+4. **Give the API the model settings.** Static Web App > **Settings > Environment variables** > Production > **+ Add**:
    - `AZURE_DECISION_ENDPOINT` = `https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone`
    - `AZURE_DECISION_DEPLOYMENT` = `dep-decision-1`
    - `AZURE_DECISION_KEY` = your key (the same one as the GitHub secret)
+   - optional `AZURE_LLM_DEPLOYMENT` = `dep-gpt-6-luna` (that is the default; same resource and key)
    - **Apply**.
-5. **Deploy.** GitHub **Actions > azure-static-web-apps > Run workflow** (it also runs on every push to main that touches the web demo). The run summary shows the site URL and the `/api/health` answer; `"live": true` means the key is in place.
-6. **Budget alert.** Portal: **Cost Management > Budgets > + Add**. Scope: the resource group from step 1. Amount: e.g. 5 (your currency) per month. Alert conditions: 50 % and 100 % actual, to your email. Optional hard ceiling: lower the rate limit (tokens per minute) on the dep-decision-1 deployment in the Foundry portal.
+5. **Deploy.** Every push to `main` that touches `web/`, `api/`, `src/` or `data/` builds, tests and deploys. To deploy by hand: GitHub **Actions > azure-static-web-apps > Run workflow**. The run summary shows the site URL and the `/api/health` answer; `"live": true` means the key is in place.
+6. **Budget alert.** Portal: **Cost Management > Budgets > + Add**. Scope: the resource group from step 1. Amount: e.g. 5 (your currency) per month. Alert conditions: 50 % and 100 % actual, to your email. Optional hard ceiling: lower the rate limit (tokens per minute) on the dep-decision-1 and dep-gpt-6-luna deployments in the Foundry portal.
 
 ### The same with the Azure CLI (PowerShell)
 
@@ -57,7 +58,7 @@ az staticwebapp secrets list --name swa-decision-demo --resource-group $rg --que
 
 # model settings; the key is read from Azure, not typed
 $key = az cognitiveservices account keys list --name proj-middagskos-resource --resource-group $rg --query key1 -o tsv
-az staticwebapp appsettings set --name swa-decision-demo --resource-group $rg --setting-names "AZURE_DECISION_ENDPOINT=https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone" "AZURE_DECISION_DEPLOYMENT=dep-decision-1" "AZURE_DECISION_KEY=$key"
+az staticwebapp appsettings set --name swa-decision-demo --resource-group $rg --setting-names "AZURE_DECISION_ENDPOINT=https://proj-middagskos-resource.services.ai.azure.com/providers/microsoft/v1/systemone" "AZURE_DECISION_DEPLOYMENT=dep-decision-1" "AZURE_DECISION_KEY=$key" "AZURE_LLM_DEPLOYMENT=dep-gpt-6-luna"
 Remove-Variable key
 
 gh workflow run azure-static-web-apps.yml --repo webmaxru/decision-models-demo

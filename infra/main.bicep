@@ -1,7 +1,7 @@
 // Azure infrastructure for the decision-models-demo web demo, built for minimum cost:
 //   - Azure Static Web App, Free plan, with its managed Azure Functions API (no separate
 //     Function App, no hosting bill)
-//   - the three app settings the API reads (AZURE_DECISION_ENDPOINT, _DEPLOYMENT, _KEY)
+//   - the app settings the API reads (AZURE_DECISION_ENDPOINT, _DEPLOYMENT, _KEY, AZURE_LLM_DEPLOYMENT)
 //   - optional: a monthly Consumption budget on the resource group with email alerts
 //
 // The Foundry (AI Services) account that hosts the model is only READ here ("existing"):
@@ -37,6 +37,9 @@ param foundryResourceGroup string = resourceGroup().name
 @description('Name of the model deployment on the Foundry account.')
 param decisionDeployment string = 'dep-decision-1'
 
+@description('Name of the regular LLM deployment (the comparison baseline) on the same Foundry account.')
+param llmDeployment string = 'dep-gpt-6-luna'
+
 @description('Decision endpoint. Empty = https://<foundry custom subdomain>.services.ai.azure.com/providers/microsoft/v1/systemone')
 param decisionEndpoint string = ''
 
@@ -44,11 +47,11 @@ param decisionEndpoint string = ''
 @secure()
 param decisionKey string = ''
 
-@description('Live runs per minute per visitor IP (the API returns 429 above it and the page shows mock output).')
+@description('Live runs per minute per visitor IP (the API returns 429 above it and the page keeps its recorded run).')
 @minValue(1)
 param rateLimitPerMinute int = 10
 
-@description('Model calls per day across all visitors.')
+@description('Model calls per day across all visitors and both models.')
 @minValue(1)
 param dailyCallCap int = 500
 
@@ -68,7 +71,7 @@ param budgetStartDate string = utcNow('yyyy-MM-01')
 @description('Tags for the created resources.')
 param tags object = {
   project: 'decision-models-demo'
-  purpose: 'conference-demo'
+  purpose: 'demo'
   managedBy: 'bicep'
 }
 
@@ -104,6 +107,7 @@ resource swaSettings 'Microsoft.Web/staticSites/config@2024-04-01' = {
     AZURE_DECISION_ENDPOINT: endpoint
     AZURE_DECISION_DEPLOYMENT: decisionDeployment
     AZURE_DECISION_KEY: empty(decisionKey) ? foundry.listKeys().key1 : decisionKey
+    AZURE_LLM_DEPLOYMENT: llmDeployment
     DEMO_RATE_PER_MIN: string(rateLimitPerMinute)
     DEMO_DAILY_CALL_CAP: string(dailyCallCap)
   }
