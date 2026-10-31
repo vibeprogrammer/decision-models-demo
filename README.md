@@ -88,7 +88,7 @@ In the [Foundry portal](https://ai.azure.com), open your Microsoft-Decision-1 de
 az cognitiveservices account keys list --name <resource-name> --resource-group <resource-group>
 ```
 
-The deployment name defaults to `Microsoft-Decision-1` here. If you named your deployment differently, set `AZURE_DECISION_DEPLOYMENT`. A 422 error means this name is wrong.
+The deployment name defaults to `Microsoft-Decision-1` here. If you named your deployment differently, set `AZURE_DECISION_DEPLOYMENT`. A 404 `DeploymentNotFound` (or 422) means this name is wrong; `npm run azure:check` then tries to list the deployment names it can see.
 
 ### 2. Set it locally (never commit it)
 
@@ -134,7 +134,7 @@ npm run azure:check
 npm run demo:azure
 ```
 
-The demo never prints the key. Error messages carry a hint (401 = key, 404 = endpoint, 422 = deployment name, 429 = rate limit, retried twice).
+The demo never prints the key. Error messages carry a hint (401 = key, 404 DeploymentNotFound or 422 = deployment name, other 404 = endpoint, 429 = rate limit, retried twice).
 
 Microsoft Entra ID instead of a key: `az login`, then set `AZURE_DECISION_TOKEN` to the output of `az account get-access-token --resource https://cognitiveservices.azure.com --query accessToken --output tsv`.
 

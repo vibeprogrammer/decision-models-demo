@@ -68,3 +68,21 @@ test("argument parsing", () => {
   assert.deepEqual(parseArgs(["--provider", "azure", "gate"]), { provider: "azure", strict: false, rest: ["gate"] });
   assert.deepEqual(parseArgs(["rank", "--provider=jev", "--strict"]), { provider: "jev", strict: true, rest: ["rank"] });
 });
+
+test("DeploymentNotFound (404) points at the deployment name, not the endpoint", async () => {
+  const f = async () => new Response('{"error":{"code":"DeploymentNotFound","message":"The API deployment microsoft-decision-1 does not exist."}}', { status: 404 });
+  await assert.rejects(
+    foundry({ AZURE_DECISION_ENDPOINT: FULL, AZURE_DECISION_KEY: "k" }, f).decide("s", Q),
+    (e) => /AZURE_DECISION_DEPLOYMENT/.test(e.message),
+  );
+});
+
+test("deployment listing reads names and models", async () => {
+  const { listFoundryDeployments } = await import("../src/providers/systemone.js");
+  let seen;
+  const f = async (url, init) => { seen = { url, init }; return new Response(JSON.stringify({ data: [{ id: "decision-dm1", model: "Microsoft-Decision-1", status: "succeeded" }] }), { status: 200 }); };
+  const ds = await listFoundryDeployments({ AZURE_DECISION_ENDPOINT: FULL, AZURE_DECISION_KEY: "k" }, f);
+  assert.equal(seen.url, "https://proj-middagskos-resource.services.ai.azure.com/openai/deployments?api-version=2022-12-01");
+  assert.equal(seen.init.headers["api-key"], "k");
+  assert.deepEqual(ds, [{ name: "decision-dm1", model: "Microsoft-Decision-1", status: "succeeded" }]);
+});
