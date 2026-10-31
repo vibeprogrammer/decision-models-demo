@@ -1,8 +1,9 @@
 // In-memory throttling for the managed Functions API.
 // Honest limits: the counters live in one function instance's memory. They reset when
 // the instance restarts, and if Azure scales out to several instances each one counts
-// on its own. That's fine for a talk demo; the hard cost ceiling is the rate limit on
-// the model deployment in Foundry plus a budget alert (see web/README.md).
+// on its own. That's fine for a public demo; the hard cost ceiling is the rate limit on
+// the model deployments in Foundry plus a budget alert (see infra/README.md).
+// One "run" = one scenario compared on both models; its cost is every model call it needs.
 
 export function createLimiter({ perIpPerMinute = 10, dailyCallCap = 500, now = () => Date.now() } = {}) {
   const hits = new Map(); // ip -> [timestamps]

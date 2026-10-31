@@ -28,6 +28,13 @@ function expectedLevel(a) {
   return ps.reduce((t, [k, p]) => t + Number(k) * p, 0) / total;
 }
 
+// Token counts in one shape for both models: { input, output } (null when not reported).
+export function normalizeUsage(u) {
+  if (!u || typeof u !== "object") return { input: null, output: null };
+  const num = (...v) => { for (const x of v) if (Number.isFinite(x)) return x; return null; };
+  return { input: num(u.input_tokens, u.prompt_tokens, u.total_tokens), output: num(u.output_tokens, u.completion_tokens) ?? (u.total_tokens != null && u.input_tokens == null && u.prompt_tokens == null ? 0 : null) };
+}
+
 export function fromSystemOneResponse(json) {
   const out = {};
   for (const [id, a] of Object.entries(json.answers ?? {})) {
@@ -39,7 +46,7 @@ export function fromSystemOneResponse(json) {
   return { model: json.model, answers: out, usage: json.usage };
 }
 
-// Hints for the errors you are most likely to hit on stage. Taken from the
+// Hints for the errors you are most likely to hit. Taken from the
 // troubleshooting table in the Microsoft-Decision-1 docs (learn.microsoft.com, 2026-10-09).
 const HINTS = {
   400: "the request shape was rejected: check state, questions, type and criteria",
@@ -57,7 +64,8 @@ export function systemOneProvider({ name, url, headers, model, fetchImpl = globa
     url,
     model,
     async decide(state, questions) {
-      const body = JSON.stringify(toSystemOneRequest(model, state, questions));
+      const request = toSystemOneRequest(model, state, questions);
+      const body = JSON.stringify(request);
       for (let attempt = 0; ; attempt++) {
         const res = await fetchImpl(url, {
           method: "POST",
@@ -77,7 +85,8 @@ export function systemOneProvider({ name, url, headers, model, fetchImpl = globa
           const hint = hints[code] ? `\n  hint: ${hints[code]}` : "";
           throw new Error(`${name}: HTTP ${res.status} ${text.slice(0, 300)}${hint}`);
         }
-        return { ...fromSystemOneResponse(JSON.parse(text)), retries: attempt };
+        const json = JSON.parse(text);
+        return { ...fromSystemOneResponse(json), usage: normalizeUsage(json.usage), retries: attempt, io: { request, response: json } };
       }
     },
   };
