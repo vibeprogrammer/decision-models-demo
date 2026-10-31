@@ -75,7 +75,7 @@ h2 { font-size: 22px; margin: 0 0 6px; letter-spacing: -.01em; }
 .status.warn { color: var(--bad); }
 
 /* scoreboard */
-.board { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; }
+.board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
 .side { border-radius: var(--radius); padding: 16px 18px 12px; border: 1px solid var(--line); position: relative; overflow: hidden; }
 .side::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; }
 .side.d::before { background: var(--accent); }
@@ -136,12 +136,17 @@ h2 { font-size: 22px; margin: 0 0 6px; letter-spacing: -.01em; }
 .json[open] > summary::before { transform: rotate(45deg); }
 .jsonbody { padding: 0 16px 16px; }
 .note { font-size: 13px; color: var(--muted); margin: 0 0 10px; }
-.io { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* The JSON panels stay inside the card: grid tracks may shrink below their content
+   (minmax(0, 1fr) + min-width: 0), long lines wrap, and anything still too wide scrolls
+   inside its own block instead of widening the page. */
+.json, .jsonbody { min-width: 0; max-width: 100%; }
+.io { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.io > div { min-width: 0; }
 .io h3 { font-size: 13px; margin: 0 0 6px; display: flex; align-items: center; gap: 6px; }
-.io pre { margin: 0; background: var(--code-bg); color: var(--code-ink); font: 12.5px/1.5 var(--mono); padding: 12px; border-radius: 8px; overflow: auto; max-height: 360px; white-space: pre; }
+.io pre { margin: 0; background: var(--code-bg); color: var(--code-ink); font: 12.5px/1.5 var(--mono); padding: 12px; border-radius: 8px; overflow: auto; max-height: 360px; max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; tab-size: 2; }
 
 /* summary chart */
-.summary, .how { background: var(--card); border-radius: var(--radius); padding: 24px 26px; margin-top: 18px; }
+.summary, .costs, .how { background: var(--card); border-radius: var(--radius); padding: 24px 26px; margin-top: 18px; }
 .chart { margin-top: 16px; display: grid; gap: 14px; }
 .crow { display: grid; grid-template-columns: 170px minmax(0, 1fr) 92px; gap: 6px 14px; align-items: center; }
 .crow .name { font-weight: 600; font-size: 15px; }
@@ -206,3 +211,40 @@ h2 { font-size: 22px; margin: 0 0 6px; letter-spacing: -.01em; }
   .board { margin-top: 18px; }
 }
 @media (max-width: 760px) { .who .model { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; } }
+
+/* cost */
+.costrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "lbl track v"; align-items: center; gap: 4px 10px; margin-top: 10px; font-size: 13px; }
+.costrow .lbl { grid-area: lbl; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.costrow .track { grid-area: track; display: block; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.costrow .fill { display: block; height: 100%; width: 0; border-radius: 4px; transition: width .45s ease-out; }
+.d .costrow .fill { background: var(--accent); }
+.l .costrow .fill { background: var(--llm); }
+.costrow .v { grid-area: v; font-weight: 700; font-variant-numeric: tabular-nums; }
+.costsub { margin: 3px 0 0; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; min-height: 1.5em; }
+.crow .acc.cheaper b { color: var(--accent-strong); font-size: 15px; }
+@media (prefers-color-scheme: dark) { .crow .acc.cheaper b { color: var(--accent); } }
+.tablewrap { margin-top: 18px; max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+.costtable { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.costtable th, .costtable td { padding: 7px 14px; text-align: right; white-space: nowrap; }
+.costtable thead th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); }
+.costtable thead th:first-child, .costtable th.m { text-align: left; font-weight: 500; }
+.costtable th.m .dot { margin-right: 7px; vertical-align: 0; }
+.costtable tr.grp th { text-align: left; padding-top: 12px; border-top: 1px solid var(--line); }
+.costtable tbody tr.grp:first-child th { border-top: 0; }
+.costtable tr.grp th > span:first-child { font-weight: 700; }
+.costtable tr.grp .x { float: right; font-weight: 700; color: var(--accent-strong); }
+@media (prefers-color-scheme: dark) { .costtable tr.grp .x { color: var(--accent); } }
+.costtable tr.l th, .costtable tr.l td { padding-bottom: 12px; }
+.prices { font-size: 13px; margin: 14px 0 0; max-width: none; }
+.prices a { color: var(--ink); }
+@media (max-width: 760px) {
+  .costs { padding: 18px 16px; }
+  .costrow { grid-template-columns: minmax(0, 1fr); grid-template-areas: "lbl" "v" "track"; gap: 2px; }
+  .costrow .lbl { text-transform: none; letter-spacing: 0; }
+  .crow .acc.cheaper { display: block; }
+  .costtable { font-size: 13px; }
+  .costtable th, .costtable td { padding: 6px 8px; }
+  .costtable thead th { font-size: 11px; white-space: normal; }
+  .costtable .perrun, .costtable .percall { display: none; } /* per call and per run are on the scoreboard above */
+  .costtable tr.grp .x { float: none; display: block; font-size: 13px; }
+}

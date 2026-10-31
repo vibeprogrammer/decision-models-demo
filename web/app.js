@@ -3,6 +3,9 @@
 // lanes call POST /api/decide item by item, at the same time, so you watch them race.
 // Before any run (or when the live models are throttled) the page shows web/recorded.json:
 // a real run recorded from this site. Nothing on this page is simulated.
+// Costs: the tokens each call really used x today's published Global prices (web/prices.js).
+
+import { PRICES, callCost } from "./prices.js";
 
 const USE_CASES = {
   triage: { tab: "Triage issues", desc: "Eight incoming GitHub issues. For each: what kind is it, how severe, and must a human look first? Your code labels, assigns or pages a maintainer." },
@@ -25,6 +28,9 @@ const fmtMs = (n) => (n == null ? "–" : n >= 1000 ? `${(n / 1000).toFixed(2)} 
 const median = (xs) => { const s = xs.filter((x) => x != null).sort((a, b) => a - b); if (!s.length) return null; const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 const sum = (xs) => xs.reduce((t, x) => t + (x ?? 0), 0);
 const pretty = (o) => JSON.stringify(o, null, 2);
+// Money: tiny numbers keep 3 significant digits ($0.0000101), bigger ones 2 decimals ($10.15).
+const fmtUsd = (x) => (x == null || !Number.isFinite(x) ? "–" : x === 0 ? "$0" : x >= 1 ? `$${x.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `$${x.toFixed(Math.max(2, 2 - Math.floor(Math.log10(x))))}`);
+const fmtX = (x) => (x >= 10 ? x.toFixed(0) : x.toFixed(1));
 const expectedLabel = (key, exp) => {
   if (key === "triage") return `${exp.kind}${exp.needs_human ? ", human first" : ""}`;
   if (key === "rank") return `best fix: ${exp}`;
@@ -39,7 +45,9 @@ function rankOutcome(items) {
   return { order: order.map((x) => x.id), top: order[0].id, correct: order[0].id === order[0].expected && order[0].composite != null };
 }
 
-function laneStats(key, lane) {
+const perCall = (st) => (st.cost != null && st.calls ? st.cost / st.calls : null);
+
+function laneStats(key, lane, name) {
   const items = (lane?.items ?? []).filter(Boolean);
   const ok = items.filter((x) => !x.error);
   let correct, total;
@@ -51,6 +59,9 @@ function laneStats(key, lane) {
     median: median(ok.map((x) => x.ms)),
     modelMs: sum(ok.map((x) => x.ms)),
     tokIn: sum(ok.map((x) => x.usage?.input)), tokOut: sum(ok.map((x) => x.usage?.output)),
+    // cost of the calls that came back, priced per call from their own token counts
+    cost: ok.some((x) => callCost(name, x.usage) != null) ? sum(ok.map((x) => callCost(name, x.usage))) : null,
+    calls: ok.filter((x) => callCost(name, x.usage) != null).length,
     parseErrors: ok.filter((x) => x.parseError).length,
     errors: items.filter((x) => x.error).length,
   };
@@ -126,8 +137,14 @@ function render(key, { running = false } = {}) {
   }
 
   // scoreboard
+  const stats = Object.fromEntries(LANES.map((lane) => [lane, laneStats(key, data?.lanes?.[lane], lane)]));
+  const costMax = Math.max(1e-12, ...LANES.map((lane) => stats[lane].cost ?? 0));
   for (const lane of LANES) {
-    const st = laneStats(key, data?.lanes?.[lane]);
+    const st = stats[lane];
+    const pc = perCall(st);
+    $(`cost-${lane}`).textContent = st.cost == null ? "–" : fmtUsd(st.cost);
+    $(`costbar-${lane}`).style.width = st.cost == null ? "0%" : `${Math.max(1, (st.cost / costMax) * 100)}%`;
+    $(`costsub-${lane}`).textContent = pc == null ? "" : `${fmtUsd(pc)} per call · ${fmtUsd(pc * 1e3)} per 1,000 · ${fmtUsd(pc * 1e6)} per 1M decisions`;
     $(`acc-${lane}`).textContent = st.correct == null ? "–" : key === "rank" ? (st.correct ? "picked the right fix" : "picked the wrong fix") : `${st.correct} / ${st.total}${st.parseErrors ? ` · ${st.parseErrors} unparseable` : ""}`;
     $(`med-${lane}`).textContent = fmtMs(st.median);
     $(`tok-${lane}`).textContent = st.n ? `${st.tokIn.toLocaleString("en")} / ${st.tokOut.toLocaleString("en")}` : "–";
@@ -141,6 +158,7 @@ function render(key, { running = false } = {}) {
     : `Recorded live run from ${new Date(recorded.recordedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}. Press Run live to measure it yourself.`;
   renderJson(key, data);
   renderChart();
+  renderCosts();
 }
 
 function cell(key, lane, r, scale, running, rank) {
@@ -208,12 +226,17 @@ function verdict(key, data, running) {
   const v = $("verdict");
   v.replaceChildren();
   if (running || !data) return;
-  const d = laneStats(key, data.lanes.decision), l = laneStats(key, data.lanes.llm);
+  const d = laneStats(key, data.lanes.decision, "decision"), l = laneStats(key, data.lanes.llm, "llm");
   if (!d.median || !l.median) return;
   const x = l.median / d.median;
   const big = el("span", "big", x >= 1.15 ? `${x.toFixed(1)}× faster` : x <= 0.87 ? `${(1 / x).toFixed(1)}× slower` : "about as fast");
   v.append("Decision model: ", big, ` per decision (median ${fmtMs(d.median)} vs ${fmtMs(l.median)})`);
   const tokRatio = l.tokOut && d.tokOut != null ? l.tokOut / Math.max(1, d.tokOut) : null;
+  const dc = perCall(d), lc = perCall(l);
+  if (dc && lc) {
+    const c = lc / dc;
+    v.append(", ", el("span", "big", c >= 1.15 ? `${fmtX(c)}× cheaper` : c <= 0.87 ? `${fmtX(1 / c)}× more expensive` : "about the same cost"), ` (${fmtUsd(dc * 1e6)} vs ${fmtUsd(lc * 1e6)} per 1M decisions)`);
+  }
   if (tokRatio && tokRatio > 1.5) v.append(`, ${tokRatio.toFixed(0)}× fewer output tokens`);
   v.append(", and a probability to act on.");
   $("side-decision").classList.toggle("win", x >= 1);
@@ -233,7 +256,7 @@ function renderJson(key, data) {
 function renderChart() {
   const chart = $("chart");
   chart.replaceChildren();
-  const rows = KEYS.map((key) => { const data = dataFor(key); return { key, data, d: data && laneStats(key, data.lanes.decision), l: data && laneStats(key, data.lanes.llm) }; });
+  const rows = KEYS.map((key) => { const data = dataFor(key); return { key, data, d: data && laneStats(key, data.lanes.decision, "decision"), l: data && laneStats(key, data.lanes.llm, "llm") }; });
   const max = Math.max(1, ...rows.flatMap((r) => [r.d?.median ?? 0, r.l?.median ?? 0]));
   let anyLive = false;
   for (const r of rows) {
@@ -257,6 +280,68 @@ function renderChart() {
     chart.append(row);
   }
   $("sum-src").textContent = anyLive ? "Includes your live runs; the rest is the recorded run." : recorded ? "From the recorded run; your live runs replace it." : "";
+}
+
+// ---------- costs ----------
+function renderCosts() {
+  const rows = KEYS.map((key) => { const data = dataFor(key); return { key, data, d: data && laneStats(key, data.lanes.decision, "decision"), l: data && laneStats(key, data.lanes.llm, "llm") }; })
+    .filter((r) => r.data);
+  // chart: cost per 1M decisions, one shared scale
+  const chart = $("costchart");
+  chart.replaceChildren();
+  const max = Math.max(1e-12, ...rows.flatMap((r) => [perCall(r.d) ?? 0, perCall(r.l) ?? 0]));
+  for (const r of rows) {
+    const pd = perCall(r.d), pl = perCall(r.l);
+    const row = el("div", "crow");
+    row.append(el("div", "name", USE_CASES[r.key].tab));
+    const bars = el("div", "bars");
+    for (const [cls, pc, label] of [["d", pd, "Decision model"], ["l", pl, "Regular LLM"]]) {
+      const b = el("div", `b ${cls}`); const f = el("span", "fill");
+      f.style.width = `${((pc ?? 0) / max) * 75}%`;
+      b.append(f, el("span", null, pc == null ? "–" : `${fmtUsd(pc * 1e6)} per 1M`));
+      b.setAttribute("aria-label", `${label}: ${pc == null ? "no data" : `${fmtUsd(pc * 1e6)} per 1M decisions`}`);
+      bars.append(b);
+    }
+    row.append(bars);
+    const acc = el("div", "acc cheaper");
+    if (pd && pl) acc.append(el("b", null, `${fmtX(pl / pd)}×`), " ", el("span", null, "cheaper"));
+    row.append(acc);
+    chart.append(row);
+  }
+  // table: per call, per run, per 1,000 and per 1M decisions; one group per use case
+  const body = $("costbody");
+  body.replaceChildren();
+  for (const r of rows) {
+    const pd = perCall(r.d), pl = perCall(r.l);
+    const g = el("tr", "grp"); const gth = el("th", null); gth.colSpan = 5; gth.scope = "rowgroup";
+    gth.append(el("span", null, USE_CASES[r.key].tab), el("span", "x", pd && pl ? `Decision-1 is ${fmtX(pl / pd)}× cheaper` : ""));
+    g.append(gth); body.append(g);
+    for (const lane of LANES) {
+      const st = r[lane === "decision" ? "d" : "l"], pc = perCall(st);
+      const tr = el("tr", lane === "decision" ? "d" : "l");
+      const m = el("th", "m"); m.scope = "row"; m.append(el("span", `dot ${lane === "decision" ? "d" : "l"}`), lane === "decision" ? "Decision-1" : "GPT-6 Luna");
+      tr.append(m, el("td", "percall", fmtUsd(pc)), el("td", "perrun", st.cost == null ? "–" : `${fmtUsd(st.cost)} (${st.calls} calls)`), el("td", null, pc == null ? "–" : fmtUsd(pc * 1e3)), el("td", null, pc == null ? "–" : fmtUsd(pc * 1e6)));
+      body.append(tr);
+    }
+  }
+  const anyLive = rows.some((r) => r.data.src === "live");
+  $("cost-src").textContent = anyLive ? "Includes your live runs; the rest is the recorded run." : "From the recorded run; your live runs replace it.";
+}
+
+function renderPrices() {
+  const p = PRICES, d = p.models.decision.perMillion, l = p.models.llm.perMillion;
+  const usd = (x) => `$${x < 0.1 ? x : x.toFixed(2)}`;
+  const when = new Date(`${p.asOf}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const note = $("prices-note");
+  note.replaceChildren(
+    `Prices as of ${when}, ${p.currency}, ${p.deploymentType}, per 1M tokens. `,
+    el("b", null, "Decision-1:"), ` ${usd(d.input)} input; output tokens are not billed. `,
+    el("b", null, "GPT-6 Luna (short context):"), ` ${usd(l.input)} input, ${usd(l.cachedInput)} cached input, ${usd(l.output)} output. Cost = the tokens each call really used × these prices; no taxes or discounts. Sources: `,
+  );
+  p.sources.forEach((s, i) => {
+    const a = el("a", null, s.label); a.href = s.url; a.rel = "noopener";
+    note.append(a, i < p.sources.length - 1 ? ", " : ".");
+  });
 }
 
 // ---------- live run ----------
@@ -325,6 +410,7 @@ async function boot() {
   ]);
   catalog = c; recorded = r;
   buildTabs();
+  renderPrices();
   $("run").addEventListener("click", runLive);
   if (h?.limits) $("limits").textContent = `${h.limits.perIpPerMinute} live runs per minute per visitor, ${h.limits.dailyCallCap} model calls per day across both models`;
   if (h && !h.live) { $("status").textContent = "Live models aren't configured on this deployment; showing the recorded run."; }

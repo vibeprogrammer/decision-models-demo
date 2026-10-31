@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Decision model vs regular LLM: live demo</title>
-<meta name="description" content="A decision model and a general-purpose LLM answer the same everyday coding-agent decisions, live. Measured latency, accuracy and tokens, side by side.">
+<meta name="description" content="A decision model and a general-purpose LLM answer the same everyday coding-agent decisions, live. Measured latency, accuracy, tokens and cost, side by side.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0b1f3a">
 <meta property="og:title" content="Decision model vs regular LLM: live demo">
-<meta property="og:description" content="Same questions, two kinds of model, both called live. Measured latency, accuracy and tokens, side by side.">
+<meta property="og:description" content="Same questions, two kinds of model, both called live. Measured latency, accuracy, tokens and cost, side by side.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://decision.isainative.dev/">
 <link rel="canonical" href="https://decision.isainative.dev/">
@@ -57,6 +57,8 @@
           <div><dt>Tokens in / out</dt><dd id="tok-decision">–</dd></div>
           <div><dt>Probabilities</dt><dd>for every option</dd></div>
         </dl>
+        <div class="costrow"><span class="lbl">Cost this run</span><span class="track" aria-hidden="true"><span class="fill" id="costbar-decision"></span></span><span class="v" id="cost-decision">–</span></div>
+        <p class="costsub" id="costsub-decision"></p>
       </div>
       <div class="side l" id="side-llm">
         <p class="who"><span class="dot"></span>Regular LLM <span class="model">GPT-6 Luna</span></p>
@@ -68,6 +70,8 @@
           <div><dt>Tokens in / out</dt><dd id="tok-llm">–</dd></div>
           <div><dt>Probabilities</dt><dd>none, a label only</dd></div>
         </dl>
+        <div class="costrow"><span class="lbl">Cost this run</span><span class="track" aria-hidden="true"><span class="fill" id="costbar-llm"></span></span><span class="v" id="cost-llm">–</span></div>
+        <p class="costsub" id="costsub-llm"></p>
       </div>
       <p class="verdict" id="verdict" aria-live="polite"></p>
     </div>
@@ -95,6 +99,20 @@
     <p class="desc">Median model latency per call, measured on the server, and how many answers were right. <span id="sum-src"></span></p>
     <div id="chart" class="chart"></div>
     <p class="legend"><span><span class="dot d"></span>Decision model</span><span><span class="dot l"></span>Regular LLM</span></p>
+  </section>
+
+  <section class="costs" aria-labelledby="cost-h">
+    <h2 id="cost-h">What it costs</h2>
+    <p class="desc">Cost per decision, from the tokens each model really used, at the published Global pay-as-you-go prices (dated below). <span id="cost-src"></span></p>
+    <div id="costchart" class="chart"></div>
+    <p class="legend"><span><span class="dot d"></span>Decision model</span><span><span class="dot l"></span>Regular LLM</span></p>
+    <div class="tablewrap" tabindex="0" role="region" aria-labelledby="cost-h">
+      <table class="costtable">
+        <thead><tr><th scope="col">Model</th><th scope="col" class="percall">Per call</th><th scope="col" class="perrun">Per run</th><th scope="col">Per 1,000 decisions</th><th scope="col">Per 1M decisions</th></tr></thead>
+        <tbody id="costbody"></tbody>
+      </table>
+    </div>
+    <p class="fine prices" id="prices-note"></p>
   </section>
 
   <section class="how" aria-labelledby="how-h">
